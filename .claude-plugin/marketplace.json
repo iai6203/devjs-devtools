@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/marketplace.json",
+  "name": "devjs-devtools",
+  "description": "JaeSeok Kim's Claude Code plugin marketplace",
+  "owner": {
+    "name": "JaeSeok Kim",
+    "email": "iai6203@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "devtools",
+      "source": "./plugins/devtools",
+      "description": "Conventional Commits, PR, issue, debug-log and other developer workflow skills",
+      "author": {
+        "name": "JaeSeok Kim",
+        "email": "iai6203@gmail.com"
+      },
+      "homepage": "https://github.com/iai6203/devjs-devtools",
+      "repository": "https://github.com/iai6203/devjs-devtools",
+      "category": "productivity",
+      "keywords": ["git", "commit", "pr", "issue", "debug", "workflow"]
+    }
+  ]
+}
