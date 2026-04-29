@@ -27,11 +27,10 @@
 ## The Basic Workflow
 
 1. **코드를 작성**하면서 추적이 필요하면 `/devtools:debug-log`로 `[DEBUG]` 접두 로그문을 삽입합니다.
-2. 스테이징된 변경을 살펴볼 때 `/devtools:explain`으로 파일 단위 분석을 받습니다.
-3. **`/devtools:commit`** 으로 Conventional Commits 형식 메시지를 자동 생성하고 커밋합니다.
-4. 브랜치 히스토리가 어수선하면 **`/devtools:squash`** 로 의미 있는 커밋 단위로 묶습니다.
-5. **`/devtools:pr`** 로 커밋들을 분석해 Conventional Commits 제목의 PR을 만듭니다.
-6. 후속 작업이 필요하면 **`/devtools:issue`** 로 라벨·담당자가 자동 제안된 GitHub 이슈를 생성합니다.
+2. **`/devtools:commit`** 으로 Conventional Commits 형식 메시지를 자동 생성하고 커밋합니다.
+3. 브랜치 히스토리가 어수선하면 **`/devtools:squash`** 로 의미 있는 커밋 단위로 묶습니다.
+4. **`/devtools:pr`** 로 커밋들을 분석해 Conventional Commits 제목의 PR을 만듭니다.
+5. 후속 작업이 필요하면 **`/devtools:issue`** 로 라벨·담당자가 자동 제안된 GitHub 이슈를 생성합니다.
 
 ## What's Inside
 
@@ -41,7 +40,6 @@
 
 - `/devtools:commit` — 스테이징된 변경을 분석해 Conventional Commits 메시지를 생성하고 커밋합니다.
 - `/devtools:squash` — 현재 브랜치의 커밋을 자동 생성된 Conventional Commits 메시지로 squash합니다.
-- `/devtools:explain` — 스테이징된 변경 사항을 파일 단위로 상세 분석합니다.
 
 ### GitHub
 
