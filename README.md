@@ -63,13 +63,6 @@
 - **작게, 독립적으로.** 각 skill은 하나의 작업만 책임지고 다른 skill에 의존하지 않습니다.
 - **자동화는 검증 가능해야 한다.** hook은 실행 전에 점검하고, 결과는 사람이 읽을 수 있는 형태로 남깁니다.
 
-## Contributing
-
-1. 이슈 또는 PR을 [GitHub 저장소](https://github.com/iai6203/devjs-devtools)에 올립니다.
-2. 새 skill을 추가할 때는 `plugins/devtools/skills/<skill-name>/SKILL.md` 형식을 따릅니다.
-3. 변경 후 `claude plugin validate .`로 마켓플레이스 매니페스트를 검증합니다.
-4. `version` 필드를 변경하지 않으면 사용자에게 업데이트가 전파되지 않습니다. 활발히 개발 중이라면 `plugin.json`의 `version`을 제거해 git 커밋 SHA 기반 자동 갱신을 사용하세요.
-
 ## Updating
 
 ```
