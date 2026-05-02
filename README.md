@@ -1,5 +1,7 @@
 # devjs-devtools
 
+[한국어](README.md) | [English](README.en.md)
+
 일상적인 개발 워크플로우를 자동화하는 [Claude Code](https://claude.com/claude-code) 플러그인 마켓플레이스입니다.
 
 ## How it works
