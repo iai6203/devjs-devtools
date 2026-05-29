@@ -1,7 +1,7 @@
 ---
 name: squash
 description: Squash commits on the current branch into one or more commits with auto-generated Conventional Commits messages
-allowed-tools: Bash(git reset *), Bash(git commit *), Bash(git diff *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash(gh repo view *)
+allowed-tools: Bash(git reset *), Bash(git stash *), Bash(git commit *), Bash(git diff *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash(gh repo view *)
 ---
 
 # Squash Skill
@@ -20,13 +20,20 @@ Arguments can be combined (e.g., `/squash 10 --groups 2`, `/squash --base develo
 
 ## Execution Steps
 
-1. Check working tree status with `git status`. If there are uncommitted changes, notify the user and abort.
+1. Determine the base branch:
+   - If `--base` is provided, use it
+   - Otherwise, auto-detect using `gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'`
 
 2. Get the current branch with `git branch --show-current`. If the current branch is the same as the base branch, notify the user and abort.
 
-3. Determine the base branch:
-   - If `--base` is provided, use it
-   - Otherwise, auto-detect using `gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'`
+3. Check working tree status with `git status`. If there are uncommitted changes (staged and/or unstaged tracked changes), do not abort. Instead, ask the user how to proceed and record their choice:
+   - **Stash and proceed (recommended):** stash the changes, run the squash, then restore them with `git stash pop` once the squash completes
+   - **Abort:** stop so the user can clean up the working tree manually
+   - **Proceed without stashing:** continue with the changes in place — warn that pre-existing staged changes will be folded into the squash commit; unstaged tracked changes remain unstaged after the reset and are not included
+
+   Notes:
+   - Untracked files do not need to be stashed; they are never folded into a commit unless explicitly staged. Use `git stash push` (without `-u`) so untracked files are left in place and only tracked changes are stashed.
+   - Do not run the stash yet — only record the decision. The stash is executed in step 8, immediately before the reset, so that aborting at the final confirmation never leaves a dangling stash.
 
 4. Collect target commits:
    - If a number argument is provided, use `git log HEAD~N..HEAD --oneline`
@@ -43,8 +50,10 @@ Arguments can be combined (e.g., `/squash 10 --groups 2`, `/squash --base develo
 7. Show the generated commit message(s) to the user and get confirmation before proceeding.
 
 8. Execute the squash:
+   - If the user chose to stash in step 3, run `git stash push` first (tracked changes only, no `-u`).
    - **Single squash (default):** `git reset --soft <target>` → `git commit -m "<message>"`
    - **Group squash:** Starting from the oldest group, for each group: `git reset --soft <group-boundary>` → stage relevant files → `git commit -m "<message>"`, repeat until all groups are committed
+   - If a stash was created, restore it with `git stash pop` after all commits are made. If `git stash pop` reports a conflict, notify the user clearly: the squash itself succeeded, the stash is preserved, and the conflicting changes must be resolved manually.
 
 9. Show the result: number of commits before and after the squash.
 
@@ -92,5 +101,8 @@ Follow the same Conventional Commits rules as the commit skill:
 - Do not use the `--no-verify` flag
 - Do not add Co-authored-by trailers
 - Do not push to remote (squash only)
+- If the working tree has uncommitted changes, offer to stash before squashing and pop afterward instead of aborting outright (see Execution Step 3)
+- Only stash tracked changes (run `git stash push` without `-u`); restore them with `git stash pop` after the squash completes
+- If `git stash pop` conflicts, the squash is already done — preserve the stash and ask the user to resolve the conflict manually
 - Always show the plan and get user confirmation before executing
 - If the squash would result in no change (e.g., only 1 commit), notify the user and abort
