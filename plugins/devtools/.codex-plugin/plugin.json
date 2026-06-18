@@ -1,0 +1,40 @@
+{
+  "name": "devtools",
+  "version": "0.0.2",
+  "description": "Simple devtools",
+  "author": {
+    "name": "JaeSeok Kim",
+    "email": "iai6203@gmail.com",
+    "url": "https://github.com/iai6203"
+  },
+  "homepage": "https://github.com/iai6203/devjs-devtools",
+  "repository": "https://github.com/iai6203/devjs-devtools",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "commit",
+    "pr",
+    "issue",
+    "debug",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Devtools",
+    "shortDescription": "Simple devtools",
+    "longDescription": "Conventional Commits, PR, issue, debug-log and other developer workflow skills",
+    "developerName": "JaeSeok Kim",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Help me with commit, PR, issue, and debug workflows."
+    ],
+    "websiteURL": "https://github.com/iai6203/devjs-devtools",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service"
+  }
+}
