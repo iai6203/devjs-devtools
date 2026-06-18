@@ -12,6 +12,8 @@ A `PreToolUse` hook runs `pre-commit-check.sh` right before any `Bash` tool call
 
 ## Installation
 
+### Claude Code
+
 Add the marketplace and install the plugin.
 
 ```
@@ -24,6 +26,24 @@ To test locally, you can add it via a directory path.
 ```
 /plugin marketplace add /path/to/devjs-devtools
 /plugin install devtools@devjs-devtools
+```
+
+### GitHub Copilot CLI
+
+Add the marketplace and install the plugin.
+
+```
+copilot plugin marketplace add iai6203/devjs-devtools
+copilot plugin install devtools@devjs-devtools
+```
+
+### Codex
+
+Add the marketplace and install the plugin.
+
+```
+codex plugin marketplace add iai6203/devjs-devtools
+codex plugin add devtools@devjs-devtools
 ```
 
 ## The Basic Workflow
@@ -65,6 +85,20 @@ To test locally, you can add it via a directory path.
 
 ## Updating
 
+Claude Code:
+
 ```
 /plugin marketplace update devjs-devtools
+```
+
+GitHub Copilot CLI:
+
+```
+copilot plugin marketplace update devjs-devtools
+```
+
+Codex:
+
+```
+codex plugin marketplace upgrade devjs-devtools
 ```
