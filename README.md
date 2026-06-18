@@ -12,6 +12,8 @@
 
 ## Installation
 
+### Claude Code
+
 마켓플레이스를 추가하고 플러그인을 설치합니다.
 
 ```
@@ -24,6 +26,24 @@
 ```
 /plugin marketplace add /path/to/devjs-devtools
 /plugin install devtools@devjs-devtools
+```
+
+### GitHub Copilot CLI
+
+마켓플레이스를 추가하고 플러그인을 설치합니다.
+
+```
+copilot plugin marketplace add iai6203/devjs-devtools
+copilot plugin install devtools@devjs-devtools
+```
+
+### Codex
+
+마켓플레이스를 추가하고 플러그인을 설치합니다.
+
+```
+codex plugin marketplace add iai6203/devjs-devtools
+codex plugin add devtools@devjs-devtools
 ```
 
 ## The Basic Workflow
@@ -65,6 +85,20 @@
 
 ## Updating
 
+Claude Code:
+
 ```
 /plugin marketplace update devjs-devtools
+```
+
+GitHub Copilot CLI:
+
+```
+copilot plugin marketplace update devjs-devtools
+```
+
+Codex:
+
+```
+codex plugin marketplace upgrade devjs-devtools
 ```
