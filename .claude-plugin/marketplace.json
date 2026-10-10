@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "devtools",
-      "source": ".",
+      "source": "./plugins/devtools",
       "description": "Conventional Commits, PR, issue, debug-log and other developer workflow skills",
       "author": {
         "name": "JaeSeok Kim",
