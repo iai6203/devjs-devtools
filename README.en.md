@@ -18,6 +18,9 @@ plugins/
     .claude-plugin/plugin.json
     .codex-plugin/plugin.json
     skills/
+  plannotator-tools/    # Claude Code Mod (macOS only)
+    .claude-plugin/plugin.json
+    hooks/
 ```
 
 To add a new plugin, create a `plugins/<name>/` directory and add an entry with `"source": "./plugins/<name>"` to the `plugins` array in `.claude-plugin/marketplace.json`.
@@ -31,7 +34,10 @@ Add the marketplace and install the plugin.
 ```
 /plugin marketplace add iai6203/devjs-devtools
 /plugin install devtools@devjs-devtools
+/plugin install plannotator-tools@devjs-devtools
 ```
+
+> `plannotator-tools` is a Claude Code Mod, so it works only in Claude Code, and only on macOS. It requires the Plannotator CLI (`plannotator`).
 
 To test locally, you can add it via a directory path.
 
@@ -83,6 +89,15 @@ codex plugin add devtools@devjs-devtools
 ### Debugging
 
 - `/devtools:debug-log` — Inserts `[DEBUG]`-prefixed log statements for debugging.
+
+### Plannotator (`plannotator-tools`, macOS only)
+
+Adds two buttons above the Claude Code prompt. The output is copied to the clipboard.
+
+- `[Plannotator] Last` — Runs `plannotator last | pbcopy`.
+- `[Plannotator] Review` — Runs `plannotator review | pbcopy`.
+
+Pressing a button again while it is running stops the previous plannotator process and starts a new one (close the previous browser tab yourself).
 
 ## Philosophy
 
