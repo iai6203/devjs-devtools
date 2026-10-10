@@ -2,13 +2,29 @@
 
 [한국어](README.md) | [English](README.en.md)
 
-A [Claude Code](https://claude.com/claude-code) plugin marketplace that automates everyday development workflows.
+A [Claude Code](https://claude.com/claude-code) plugin marketplace that automates everyday development workflows. The repository can hold multiple plugins in a single marketplace, each managed as its own directory under `plugins/`.
 
 ## How it works
 
-The `devtools` plugin lets you handle the repetitive tasks that come up while writing code, debugging, recording changes, and sharing them with teammates — all through a single skill invocation. It currently covers Conventional Commits–based git/GitHub workflows (commit, PR, issue, squash) and inserting debug logs, and we plan to gradually add more commonly used development tasks (code analysis, testing, documentation, and so on) inside the same plugin.
+The `devtools` plugin lets you handle the repetitive tasks that come up while writing code, debugging, recording changes, and sharing them with teammates — all through a single skill invocation. It currently covers Conventional Commits–based git/GitHub workflows (commit, PR, issue, squash) and inserting debug logs, and we plan to gradually add more commonly used development tasks (code analysis, testing, documentation, and so on).
 
 A `PreToolUse` hook runs `pre-commit-check.sh` right before any `Bash` tool call to guard against dangerous or unintended commands.
+
+## Structure
+
+```
+.claude-plugin/
+  marketplace.json      # Marketplace definition (list of plugins)
+plugins/
+  devtools/             # One directory per plugin
+    .claude-plugin/plugin.json
+    .codex-plugin/plugin.json
+    hooks/
+    scripts/
+    skills/
+```
+
+To add a new plugin, create a `plugins/<name>/` directory and add an entry with `"source": "./plugins/<name>"` to the `plugins` array in `.claude-plugin/marketplace.json`.
 
 ## Installation
 

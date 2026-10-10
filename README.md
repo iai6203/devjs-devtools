@@ -2,13 +2,29 @@
 
 [한국어](README.md) | [English](README.en.md)
 
-일상적인 개발 워크플로우를 자동화하는 [Claude Code](https://claude.com/claude-code) 플러그인 마켓플레이스입니다.
+일상적인 개발 워크플로우를 자동화하는 [Claude Code](https://claude.com/claude-code) 플러그인 마켓플레이스입니다. 하나의 마켓플레이스에 여러 플러그인을 담을 수 있는 구조로, 각 플러그인은 `plugins/` 아래에 독립된 디렉터리로 관리됩니다.
 
 ## How it works
 
-`devtools` 플러그인은 코드를 작성하고, 디버깅하고, 변경을 기록하고, 동료와 공유하는 과정에서 반복되는 작업들을 skill 한 번으로 처리할 수 있게 해줍니다. 현재는 Conventional Commits 기반의 git/GitHub 워크플로우(커밋·PR·이슈·squash)와 디버깅용 로그 삽입을 다루며, 앞으로 코드 분석·테스트·문서화 등 개발 전반에서 자주 쓰이는 작업들을 같은 플러그인 안에 점진적으로 추가해나갈 예정입니다.
+`devtools` 플러그인은 코드를 작성하고, 디버깅하고, 변경을 기록하고, 동료와 공유하는 과정에서 반복되는 작업들을 skill 한 번으로 처리할 수 있게 해줍니다. 현재는 Conventional Commits 기반의 git/GitHub 워크플로우(커밋·PR·이슈·squash)와 디버깅용 로그 삽입을 다루며, 앞으로 코드 분석·테스트·문서화 등 개발 전반에서 자주 쓰이는 작업들을 점진적으로 추가해나갈 예정입니다.
 
 `PreToolUse` hook은 `Bash` 도구 호출 직전에 `pre-commit-check.sh`를 실행해, 위험하거나 의도치 않은 명령이 실행되지 않도록 가드합니다.
+
+## Structure
+
+```
+.claude-plugin/
+  marketplace.json      # 마켓플레이스 정의 (플러그인 목록)
+plugins/
+  devtools/             # 플러그인 하나당 디렉터리 하나
+    .claude-plugin/plugin.json
+    .codex-plugin/plugin.json
+    hooks/
+    scripts/
+    skills/
+```
+
+새 플러그인을 추가하려면 `plugins/<name>/` 디렉터리를 만들고 `.claude-plugin/marketplace.json`의 `plugins` 배열에 `"source": "./plugins/<name>"` 항목을 추가합니다.
 
 ## Installation
 
