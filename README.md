@@ -18,6 +18,9 @@ plugins/
     .claude-plugin/plugin.json
     .codex-plugin/plugin.json
     skills/
+  plannotator-tools/    # Claude Code Mod (macOS 전용)
+    .claude-plugin/plugin.json
+    hooks/
 ```
 
 새 플러그인을 추가하려면 `plugins/<name>/` 디렉터리를 만들고 `.claude-plugin/marketplace.json`의 `plugins` 배열에 `"source": "./plugins/<name>"` 항목을 추가합니다.
@@ -31,7 +34,10 @@ plugins/
 ```
 /plugin marketplace add iai6203/devjs-devtools
 /plugin install devtools@devjs-devtools
+/plugin install plannotator-tools@devjs-devtools
 ```
+
+> `plannotator-tools`는 Claude Code Mod라 Claude Code에서만 동작하며, macOS 전용입니다. Plannotator CLI(`plannotator`)가 설치되어 있어야 합니다.
 
 로컬에서 테스트하려면 디렉터리 경로로 추가할 수 있습니다.
 
@@ -83,6 +89,15 @@ codex plugin add devtools@devjs-devtools
 ### Debugging
 
 - `/devtools:debug-log` — 디버깅을 위한 `[DEBUG]` 접두 로그문을 삽입합니다.
+
+### Plannotator (`plannotator-tools`, macOS 전용)
+
+Claude Code 입력창 위에 버튼 2개를 추가합니다. 실행 결과는 클립보드에 복사됩니다.
+
+- `[Plannotator] Last` — `plannotator last | pbcopy`를 실행합니다.
+- `[Plannotator] Review` — `plannotator review | pbcopy`를 실행합니다.
+
+실행 중인 버튼을 다시 누르면 이전 plannotator 프로세스를 종료하고 새로 시작합니다(이전 브라우저 탭은 직접 닫아야 합니다).
 
 ## Philosophy
 
