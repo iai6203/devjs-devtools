@@ -3,6 +3,6 @@ export type Running = Record<Target, boolean>
 
 declare module 'claude-code' {
   interface PluginState {
-    'plannotator-tools': { running: Running }
+    'plannotator-tools': { running: Running; responding: boolean; reserved: boolean }
   }
 }

@@ -5,6 +5,7 @@ import type {
   ProcessSpawnChunk,
   ProcessSpawnResult,
   Register,
+  Timer,
 } from 'claude-code'
 
 import type { Target } from '../types'
@@ -13,6 +14,13 @@ const running = atom({ plugin: 'plannotator-tools', key: 'running' } as const, {
   last: false,
   review: false,
 })
+
+// 메인 턴이 응답 중인지, Last가 그 턴의 종료에 예약되어 있는지
+const responding = atom({ plugin: 'plannotator-tools', key: 'responding' } as const, false)
+const reserved = atom({ plugin: 'plannotator-tools', key: 'reserved' } as const, false)
+
+// 턴이 끝난 직후엔 마지막 메시지가 아직 기록되지 않았을 수 있어 잠시 기다린 뒤 실행한다
+const RESERVE_DELAY_MS = 1000
 
 const BUTTONS: ReadonlyArray<{ target: Target; label: string }> = [
   { target: 'last', label: '[Plannotator] Last' },
@@ -33,6 +41,7 @@ const NOT_FOUND = 'plannotator를 실행할 수 없습니다. 설치되어 있�
 let isMac: Promise<boolean> | undefined
 let nextId = 0
 const runs: Partial<Record<Target, Run>> = {}
+let pending: Timer | undefined
 
 function checkMac($: EngineInterface) {
   isMac ??= $.process
@@ -128,7 +137,55 @@ async function start($: EngineInterface, target: Target) {
   )
 }
 
+function setReserved($: EngineInterface, value: boolean) {
+  return update($, reserved, () => value)
+}
+
+// 응답 중에 Last를 누르면 예약하고, 예약된 상태에서 다시 누르면 해제한다
+async function pressLast($: EngineInterface) {
+  if (await read($, reserved)) {
+    pending?.cancel()
+    pending = undefined
+    await setReserved($, false)
+    return
+  }
+  if (await read($, responding)) {
+    await setReserved($, true)
+    return
+  }
+  await start($, 'last')
+}
+
 export const register: Register = on => {
+  on('turn.start', async ($, e, next) => {
+    await update($, responding, () => true)
+    return next(e)
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    // 서브에이전트의 턴은 메인 응답의 끝이 아니다
+    if (e.agentId !== undefined) {
+      return result
+    }
+
+    await update($, responding, () => false)
+    if (!(await read($, reserved)) || pending) {
+      return result
+    }
+    if (e.reason !== 'answer') {
+      await setReserved($, false)
+      $.ui.toast('응답이 정상적으로 끝나지 않아 Last 예약을 해제했습니다.')
+      return result
+    }
+
+    pending = $.clock.after(RESERVE_DELAY_MS, () => {
+      pending = undefined
+      void setReserved($, false).then(() => start($, 'last'))
+    })
+    return result
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.surface !== 'terminal' || e.props.hasSurvey || !(await checkMac($))) {
       return next(e)
@@ -136,14 +193,21 @@ export const register: Register = on => {
 
     const { Box, Button } = $.ui.resolve(e)
     const state = await read($, running)
+    const isReserved = await read($, reserved)
 
     return (
       <Box gap={1}>
         {BUTTONS.map(({ target, label }) => (
           <Button
             key={target}
-            label={state[target] ? `${label} (실행 중 · 클릭 시 재시작)` : label}
-            onPress={() => void start($, target)}
+            label={
+              target === 'last' && isReserved
+                ? `${label} (예약됨 · 클릭 시 해제)`
+                : state[target]
+                  ? `${label} (실행 중 · 클릭 시 재시작)`
+                  : label
+            }
+            onPress={() => void (target === 'last' ? pressLast($) : start($, target))}
           />
         ))}
       </Box>
