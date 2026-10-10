@@ -8,8 +8,6 @@
 
 `devtools` 플러그인은 코드를 작성하고, 디버깅하고, 변경을 기록하고, 동료와 공유하는 과정에서 반복되는 작업들을 skill 한 번으로 처리할 수 있게 해줍니다. 현재는 Conventional Commits 기반의 git/GitHub 워크플로우(커밋·PR·이슈·squash)와 디버깅용 로그 삽입을 다루며, 앞으로 코드 분석·테스트·문서화 등 개발 전반에서 자주 쓰이는 작업들을 점진적으로 추가해나갈 예정입니다.
 
-`PreToolUse` hook은 `Bash` 도구 호출 직전에 `pre-commit-check.sh`를 실행해, 위험하거나 의도치 않은 명령이 실행되지 않도록 가드합니다.
-
 ## Structure
 
 ```
@@ -19,8 +17,6 @@ plugins/
   devtools/             # 플러그인 하나당 디렉터리 하나
     .claude-plugin/plugin.json
     .codex-plugin/plugin.json
-    hooks/
-    scripts/
     skills/
 ```
 
@@ -88,16 +84,12 @@ codex plugin add devtools@devjs-devtools
 
 - `/devtools:debug-log` — 디버깅을 위한 `[DEBUG]` 접두 로그문을 삽입합니다.
 
-### Hooks
-
-- `PreToolUse` (Bash) — `Bash` 도구 호출 직전에 `pre-commit-check.sh`를 실행합니다.
-
 ## Philosophy
 
 - **반복은 자동화한다.** 매번 손으로 하던 작업을 skill 한 번으로 끝낼 수 있게 합니다.
 - **표준을 따른다.** 가능한 곳에서는 Conventional Commits 같은 공용 규약을 따라 다른 도구·자동화와 호환되도록 합니다.
 - **작게, 독립적으로.** 각 skill은 하나의 작업만 책임지고 다른 skill에 의존하지 않습니다.
-- **자동화는 검증 가능해야 한다.** hook은 실행 전에 점검하고, 결과는 사람이 읽을 수 있는 형태로 남깁니다.
+- **자동화는 검증 가능해야 한다.** 결과는 사람이 읽을 수 있는 형태로 남깁니다.
 
 ## Updating
 
