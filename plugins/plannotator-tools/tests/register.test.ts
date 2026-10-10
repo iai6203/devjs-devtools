@@ -1,5 +1,6 @@
-import { expect, test } from 'claude-code/testing'
-import type { On } from 'claude-code'
+import { expect, mock, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
+import type { On, TurnCompleteReason } from 'claude-code'
 
 const BAND = {
   plugin: 'plannotator-tools',
@@ -66,6 +67,9 @@ function fakeHost(on: On, host: Host = {}) {
     toasts.push(e.text)
     return { value: undefined }
   })
+
+  on('turn.start', ($, e) => ({ turnId: e.turnId }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
 
   // 플러그인이 그리지 않을 때 엔진 대신 빈 밴드를 그린다
   on('ui.render', ($, e) => {
@@ -158,5 +162,124 @@ test('실행 중에 다시 누르면 이전 실행을 종료하고 새로 시작
   expect(host.copied).toEqual(['# new feedback'])
   expect(host.toasts).toEqual(['plannotator last 결과를 클립보드에 복사했습니다.'])
   expect((await ui.find({ key: 'last' }))?.text).toBe('[Plannotator] Last')
+  await ui.unmount()
+})
+
+const LAST = '[Plannotator] Last'
+const RESERVED = '[Plannotator] Last (예약됨 · 클릭 시 해제)'
+
+function startTurn($: Engine) {
+  return $.turn.start({ text: '질문', turnId: 'turn-1' })
+}
+
+function completeTurn(
+  $: Engine,
+  reason: Exclude<TurnCompleteReason, 'refusal'> = 'answer',
+  agentId?: string,
+) {
+  return $.turn.complete({
+    answer: '답변',
+    durationMs: 1,
+    isAborted: reason === 'aborted',
+    turnId: agentId ? 'agent-turn' : 'turn-1',
+    agentId,
+    reason,
+  })
+}
+
+test('응답 중에 Last를 누르면 예약되고, 응답이 끝난 뒤 잠시 후 실행한다', async ($, on) => {
+  const clock = mock.clock(on)
+  const host = fakeHost(on, { outputs: ['# final'] })
+  const ui = await $.ui.mount(BAND)
+
+  await startTurn($)
+  await ui.press({ key: 'last' })
+  expect(host.spawned).toEqual([])
+  expect((await ui.find({ key: 'last' }))?.text).toBe(RESERVED)
+
+  await completeTurn($)
+  await clock.advance(999)
+  expect(host.spawned).toEqual([])
+
+  await clock.advance(1)
+  expect(host.spawned).toEqual(['last'])
+  expect(host.copied).toEqual(['# final'])
+  expect((await ui.find({ key: 'last' }))?.text).toBe(LAST)
+  await ui.unmount()
+})
+
+test('예약된 Last를 다시 누르면 예약을 해제한다', async ($, on) => {
+  const clock = mock.clock(on)
+  const host = fakeHost(on, { outputs: ['# final'] })
+  const ui = await $.ui.mount(BAND)
+
+  await startTurn($)
+  await ui.press({ key: 'last' })
+  await ui.press({ key: 'last' })
+  expect((await ui.find({ key: 'last' }))?.text).toBe(LAST)
+
+  await completeTurn($)
+  await clock.advance(2000)
+  expect(host.spawned).toEqual([])
+  await ui.unmount()
+})
+
+test('대기 중에 다시 누르면 예약 실행을 취소한다', async ($, on) => {
+  const clock = mock.clock(on)
+  const host = fakeHost(on, { outputs: ['# final'] })
+  const ui = await $.ui.mount(BAND)
+
+  await startTurn($)
+  await ui.press({ key: 'last' })
+  await completeTurn($)
+  await ui.press({ key: 'last' })
+  await clock.advance(2000)
+
+  expect(host.spawned).toEqual([])
+  expect((await ui.find({ key: 'last' }))?.text).toBe(LAST)
+  await ui.unmount()
+})
+
+test('턴이 중단되면 예약을 해제하고 알린다', async ($, on) => {
+  const clock = mock.clock(on)
+  const host = fakeHost(on, { outputs: ['# partial'] })
+  const ui = await $.ui.mount(BAND)
+
+  await startTurn($)
+  await ui.press({ key: 'last' })
+  await completeTurn($, 'aborted')
+  await clock.advance(2000)
+
+  expect(host.spawned).toEqual([])
+  expect(host.toasts).toEqual(['응답이 정상적으로 끝나지 않아 Last 예약을 해제했습니다.'])
+  expect((await ui.find({ key: 'last' }))?.text).toBe(LAST)
+  await ui.unmount()
+})
+
+test('서브에이전트 턴이 끝나도 예약을 유지한다', async ($, on) => {
+  const clock = mock.clock(on)
+  const host = fakeHost(on, { outputs: ['# final'] })
+  const ui = await $.ui.mount(BAND)
+
+  await startTurn($)
+  await ui.press({ key: 'last' })
+  await completeTurn($, 'answer', 'agent-1')
+  await clock.advance(2000)
+
+  expect(host.spawned).toEqual([])
+  expect((await ui.find({ key: 'last' }))?.text).toBe(RESERVED)
+  await ui.unmount()
+})
+
+test('응답 중이 아니면 Last를 바로 실행한다', async ($, on) => {
+  mock.clock(on)
+  const host = fakeHost(on, { outputs: ['# feedback'] })
+  const ui = await $.ui.mount(BAND)
+
+  await startTurn($)
+  await completeTurn($)
+  await ui.press({ key: 'last' })
+
+  expect(host.spawned).toEqual(['last'])
   await ui.unmount()
 })
