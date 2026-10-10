@@ -1,7 +1,7 @@
 {
   "name": "plannotator-tools",
   "description": "Plannotator Last/Review buttons above the Claude Code prompt (macOS only)",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": {
     "name": "JaeSeok Kim",
     "email": "iai6203@gmail.com"
