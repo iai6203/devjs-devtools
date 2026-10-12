@@ -8,6 +8,8 @@ A [Claude Code](https://claude.com/claude-code) plugin marketplace that automate
 
 The `devtools` plugin lets you handle the repetitive tasks that come up while writing code, debugging, recording changes, and sharing them with teammates — all through a single skill invocation. It currently covers Conventional Commits–based git/GitHub workflows (commit, PR, issue, squash) and inserting debug logs, and we plan to gradually add more commonly used development tasks (code analysis, testing, documentation, and so on).
 
+`tdd` is an independent plugin for readable, human-approved executable test specifications and TDD phase safeguards. It shares the same `readable-tests` skill between Claude Code and [Pi Coding Agent](https://pi.dev).
+
 ## Structure
 
 ```
@@ -21,6 +23,10 @@ plugins/
   plannotator-tools/    # Claude Code Mod (macOS only)
     .claude-plugin/plugin.json
     hooks/
+  tdd/                  # Independent Claude Code + Pi package
+    .claude-plugin/plugin.json
+    package.json        # Pi manifest (exposes skills only)
+    skills/readable-tests/SKILL.md
 ```
 
 To add a new plugin, create a `plugins/<name>/` directory and add an entry with `"source": "./plugins/<name>"` to the `plugins` array in `.claude-plugin/marketplace.json`.
@@ -45,6 +51,31 @@ To test locally, you can add it via a directory path.
 /plugin marketplace add /path/to/devjs-devtools
 /plugin install devtools@devjs-devtools
 ```
+
+To install `tdd`, run these Claude CLI commands in your terminal:
+
+```sh
+claude plugin marketplace add iai6203/devjs-devtools
+claude plugin install tdd@devjs-devtools
+```
+
+Invoke `/tdd:readable-tests` in Claude Code.
+
+### Pi Coding Agent (`tdd`)
+
+Clone the repository, then install the `tdd` package directory locally from the repository root:
+
+```sh
+git clone https://github.com/iai6203/devjs-devtools.git
+cd devjs-devtools
+pi install ./plugins/tdd
+# Or install via an absolute path:
+# pi install /path/to/devjs-devtools/plugins/tdd
+```
+
+Invoke `/skill:readable-tests` in Pi. Local installation references the directory without copying files, so keep the cloned directory in place. If another `readable-tests` skill is already present, Pi warns about the name collision and uses the first discovered skill; remove duplicate paths.
+
+The Pi manifest exists only at `plugins/tdd/package.json`. Installing the remote Git repository root directly does not discover `tdd` with this layout; npm publishing is out of scope.
 
 ### GitHub Copilot CLI
 
@@ -89,6 +120,10 @@ codex plugin add devtools@devjs-devtools
 ### Debugging
 
 - `/devtools:debug-log` — Inserts `[DEBUG]`-prefixed log statements for debugging.
+
+### Testing (`tdd`, Claude Code + Pi)
+
+- Claude Code: `/tdd:readable-tests` / Pi: `/skill:readable-tests` — Writes and reviews tests as readable executable specifications, with safeguards for TDD RED approval and GREEN implementation. The shared skill instructions are in Korean.
 
 ### Plannotator (`plannotator-tools`, macOS only)
 
