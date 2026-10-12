@@ -32,6 +32,19 @@
       "repository": "https://github.com/iai6203/devjs-devtools",
       "category": "productivity",
       "keywords": ["plannotator", "review", "mod", "macos"]
+    },
+    {
+      "name": "tdd",
+      "source": "./plugins/tdd",
+      "description": "Readable executable test specifications and TDD phase safeguards",
+      "author": {
+        "name": "JaeSeok Kim",
+        "email": "iai6203@gmail.com"
+      },
+      "homepage": "https://github.com/iai6203/devjs-devtools",
+      "repository": "https://github.com/iai6203/devjs-devtools",
+      "category": "productivity",
+      "keywords": ["tdd", "tests", "readability", "specifications"]
     }
   ]
 }

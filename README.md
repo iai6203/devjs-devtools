@@ -8,6 +8,8 @@
 
 `devtools` 플러그인은 코드를 작성하고, 디버깅하고, 변경을 기록하고, 동료와 공유하는 과정에서 반복되는 작업들을 skill 한 번으로 처리할 수 있게 해줍니다. 현재는 Conventional Commits 기반의 git/GitHub 워크플로우(커밋·PR·이슈·squash)와 디버깅용 로그 삽입을 다루며, 앞으로 코드 분석·테스트·문서화 등 개발 전반에서 자주 쓰이는 작업들을 점진적으로 추가해나갈 예정입니다.
 
+`tdd`는 사람이 읽고 승인할 수 있는 실행 테스트 명세와 TDD 단계별 안전장치를 제공하는 독립 플러그인입니다. 같은 `readable-tests` 스킬을 Claude Code와 [Pi Coding Agent](https://pi.dev)에서 공유합니다.
+
 ## Structure
 
 ```
@@ -21,6 +23,10 @@ plugins/
   plannotator-tools/    # Claude Code Mod (macOS 전용)
     .claude-plugin/plugin.json
     hooks/
+  tdd/                  # Claude Code + Pi 독립 패키지
+    .claude-plugin/plugin.json
+    package.json        # Pi manifest (skills만 노출)
+    skills/readable-tests/SKILL.md
 ```
 
 새 플러그인을 추가하려면 `plugins/<name>/` 디렉터리를 만들고 `.claude-plugin/marketplace.json`의 `plugins` 배열에 `"source": "./plugins/<name>"` 항목을 추가합니다.
@@ -45,6 +51,31 @@ plugins/
 /plugin marketplace add /path/to/devjs-devtools
 /plugin install devtools@devjs-devtools
 ```
+
+`tdd`를 설치하려면 터미널에서 다음 Claude CLI 명령을 실행합니다.
+
+```sh
+claude plugin marketplace add iai6203/devjs-devtools
+claude plugin install tdd@devjs-devtools
+```
+
+Claude Code에서 `/tdd:readable-tests`로 호출합니다.
+
+### Pi Coding Agent (`tdd`)
+
+저장소를 clone한 뒤 저장소 루트에서 `tdd` 패키지 디렉터리를 로컬 설치합니다.
+
+```sh
+git clone https://github.com/iai6203/devjs-devtools.git
+cd devjs-devtools
+pi install ./plugins/tdd
+# 또는 절대 경로로 설치:
+# pi install /path/to/devjs-devtools/plugins/tdd
+```
+
+Pi에서 `/skill:readable-tests`로 호출합니다. 로컬 설치는 파일을 복사하지 않고 해당 경로를 참조하므로 clone한 디렉터리를 유지해야 합니다. 기존에 같은 이름의 `readable-tests` 스킬이 있으면 충돌 경고가 발생하고 먼저 발견된 스킬이 사용되므로 중복 경로를 정리하세요.
+
+Pi manifest는 `plugins/tdd/package.json`에만 있습니다. 원격 Git 저장소 루트 직접 설치로 `tdd`가 발견되는 구성은 아니며, npm 배포는 범위 밖입니다.
 
 ### GitHub Copilot CLI
 
@@ -89,6 +120,10 @@ codex plugin add devtools@devjs-devtools
 ### Debugging
 
 - `/devtools:debug-log` — 디버깅을 위한 `[DEBUG]` 접두 로그문을 삽입합니다.
+
+### Testing (`tdd`, Claude Code + Pi)
+
+- Claude Code: `/tdd:readable-tests` / Pi: `/skill:readable-tests` — 테스트를 읽을 수 있는 실행 명세로 작성·검토하고, TDD RED 승인 및 GREEN 구현 단계의 안전장치를 따릅니다. 공유 스킬 본문은 한국어입니다.
 
 ### Plannotator (`plannotator-tools`, macOS 전용)
 
