@@ -24,6 +24,13 @@ description: Write and review tests as readable executable specifications coloca
 - 별도 시나리오 표나 문서를 기본 산출물로 만들지 않는다. 요청받아 작성할 때는 실제 테스트 위치에 연결하고, 테스트 파일만으로도 이해할 수 있게 한다.
 - RED 실행 결과, 임시 실패 로그, 작업 진행 상태는 테스트 주석에 남기지 않고 작업 보고에 둔다.
 
+## 설명과 코드 식별자 연결
+
+- 테스트 이름, Given / When / Then 주석, 정책 설명, 작업 보고에서 코드의 변수나 함수를 설명할 때는 자연어 설명 바로 뒤에 실제 식별자를 괄호로 병기한다. 예: `허용 한도(maxBytes)`, `파일(file)`, `파일을 검증한다(validateFile)`.
+- 도메인 의미와 의도를 먼저 쓰고 식별자는 코드 위치를 찾는 단서로 사용한다. 식별자만 나열하거나 코드 한 줄을 그대로 번역하지 않는다.
+- 설명에 등장하는 대상에 대응하는 식별자만 적는다. 코드와 무관한 설명에 억지로 괄호를 붙이거나, 존재하지 않는 이름 또는 설명용 별칭을 만들지 않는다.
+- 식별자는 해당 테스트 코드와 정확히 일치시킨다. 이름을 바꾸면 테스트 이름과 주석, 관련 설명의 괄호 표기도 함께 갱신한다.
+
 ## 본문과 검증의 규칙
 
 ### Given: 상황이 드러나야 한다
@@ -53,17 +60,17 @@ description: Write and review tests as readable executable specifications coloca
 아래는 형식 설명용 예시다. 함수와 헬퍼는 가상이며, 실제 저장소의 API와 확정된 정책으로 대체한다. 이 예시의 정책을 요구사항으로 간주하지 않는다.
 
 ```ts
-describe('파일 검증', () => {
-  describe('파일 크기가 허용 한도를 초과한 경우', () => {
-    it('파일을 거부하고 허용 한도를 알려준다', () => {
-      // Given: 허용 한도보다 1바이트 큰 파일이다.
+describe('파일 검증(validateFile)', () => {
+  describe('파일(file) 크기가 허용 한도(maxBytes)를 초과한 경우', () => {
+    it('파일(file)을 거부하고 허용 한도(maxBytes)를 알려준다', () => {
+      // Given: 허용 한도(maxBytes)보다 1바이트 큰 파일(file)이다.
       const maxBytes = 1024;
       const file = createFile({ size: 1025 });
 
-      // When: 파일을 검증한다.
+      // When: 파일(file)을 검증한다(validateFile).
       const result = validateFile(file, { maxBytes });
 
-      // Then: 초과 사유와 허용 한도를 반환한다.
+      // Then: 검증 결과(result)에 거부 여부(accepted), 초과 사유(reason), 허용 한도(maxBytes)를 담는다.
       expect(result).toEqual({
         accepted: false,
         reason: 'size-exceeded',
@@ -101,6 +108,7 @@ describe('파일 검증', () => {
 - 제목만 읽어도 조건과 기대 동작을 이해할 수 있는가?
 - 본문에 중요한 입력과 기대값이 보이는가?
 - Given / When / Then과 실제 코드가 일치하는가?
+- 설명하는 변수·함수의 실제 식별자를 괄호로 병기했고, 해당 테스트 코드의 이름과 정확히 일치하는가?
 - assertion이 제목을 증명하며, 다른 결과라면 실패하는가?
 - 필요한 정상·실패·경계 사례 중 빠진 것이 있는가? 요구사항상 불명확한 사례는 질문으로 남겼는가?
 - 가독성을 높이는 과정에서 검증을 약화하지 않았는가?
