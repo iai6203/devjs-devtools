@@ -8,7 +8,7 @@
 
 `devtools` 플러그인은 코드를 작성하고, 디버깅하고, 변경을 기록하고, 동료와 공유하는 과정에서 반복되는 작업들을 skill 한 번으로 처리할 수 있게 해줍니다. 현재는 Conventional Commits 기반의 git/GitHub 워크플로우(커밋·PR·이슈·squash)와 디버깅용 로그 삽입을 다루며, 앞으로 코드 분석·테스트·문서화 등 개발 전반에서 자주 쓰이는 작업들을 점진적으로 추가해나갈 예정입니다.
 
-`tdd`는 사람이 읽고 승인할 수 있는 실행 테스트 명세와 TDD 단계별 안전장치를 제공하는 독립 플러그인입니다. 같은 스킬(`readable-tests`, `green-handoff`, `green-review`)을 Claude Code와 [Pi Coding Agent](https://pi.dev)에서 공유합니다.
+`tdd`는 사람이 읽고 승인할 수 있는 실행 테스트 명세와 TDD 단계별 안전장치를 제공하는 독립 플러그인입니다. 같은 스킬(`test-list`, `readable-tests`, `green-handoff`, `green-review`)을 Claude Code와 [Pi Coding Agent](https://pi.dev)에서 공유합니다.
 
 ## Structure
 
@@ -28,6 +28,7 @@ plugins/
     package.json        # Pi manifest (skills만 노출)
     references/tdd-policy.md  # 스킬 공통 정책
     skills/
+      test-list/SKILL.md
       readable-tests/SKILL.md
       green-handoff/SKILL.md
       green-review/SKILL.md
@@ -63,7 +64,7 @@ claude plugin marketplace add iai6203/devjs-devtools
 claude plugin install tdd@devjs-devtools
 ```
 
-Claude Code에서 `/tdd:readable-tests`, `/tdd:green-handoff`, `/tdd:green-review`로 호출합니다.
+Claude Code에서 `/tdd:test-list`, `/tdd:readable-tests`, `/tdd:green-handoff`, `/tdd:green-review`로 호출합니다.
 
 ### Pi Coding Agent (`tdd`)
 
@@ -77,7 +78,7 @@ pi install ./plugins/tdd
 # pi install /path/to/devjs-devtools/plugins/tdd
 ```
 
-Pi에서 `/skill:readable-tests`, `/skill:green-handoff`, `/skill:green-review`로 호출합니다. 로컬 설치는 파일을 복사하지 않고 해당 경로를 참조하므로 clone한 디렉터리를 유지해야 합니다. 기존에 같은 이름의 스킬이 있으면 충돌 경고가 발생하고 먼저 발견된 스킬이 사용되므로 중복 경로를 정리하세요.
+Pi에서 `/skill:test-list`, `/skill:readable-tests`, `/skill:green-handoff`, `/skill:green-review`로 호출합니다. 로컬 설치는 파일을 복사하지 않고 해당 경로를 참조하므로 clone한 디렉터리를 유지해야 합니다. 기존에 같은 이름의 스킬이 있으면 충돌 경고가 발생하고 먼저 발견된 스킬이 사용되므로 중복 경로를 정리하세요.
 
 Pi manifest는 `plugins/tdd/package.json`에만 있습니다. 원격 Git 저장소 루트 직접 설치로 `tdd`가 발견되는 구성은 아니며, npm 배포는 범위 밖입니다.
 
@@ -127,6 +128,7 @@ codex plugin add devtools@devjs-devtools
 
 ### Testing (`tdd`, Claude Code + Pi)
 
+- Claude Code: `/tdd:test-list` / Pi: `/skill:test-list` — 요구사항을 정상·실패·경계 사례와 미확정 질문으로 정리한 테스트 목록을 만들고, RED 작성 전에 승인을 받습니다.
 - Claude Code: `/tdd:readable-tests` / Pi: `/skill:readable-tests` — 테스트를 읽을 수 있는 실행 명세로 작성·검토하고, TDD RED 승인 및 GREEN 구현 단계의 안전장치를 따릅니다.
 - Claude Code: `/tdd:green-handoff` / Pi: `/skill:green-handoff` — 승인된 RED 테스트를 바탕으로, 다른 에이전트에게 GREEN 구현을 맡길 지시문을 작성합니다.
 - Claude Code: `/tdd:green-review` / Pi: `/skill:green-review` — 다른 에이전트가 끝낸 GREEN 구현을 검수합니다. 승인된 테스트 보존, 변경 범위, 검증 재실행, 보고 대조를 확인하고 판정합니다.

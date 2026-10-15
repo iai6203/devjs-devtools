@@ -8,7 +8,7 @@ A [Claude Code](https://claude.com/claude-code) plugin marketplace that automate
 
 The `devtools` plugin lets you handle the repetitive tasks that come up while writing code, debugging, recording changes, and sharing them with teammates — all through a single skill invocation. It currently covers Conventional Commits–based git/GitHub workflows (commit, PR, issue, squash) and inserting debug logs, and we plan to gradually add more commonly used development tasks (code analysis, testing, documentation, and so on).
 
-`tdd` is an independent plugin for readable, human-approved executable test specifications and TDD phase safeguards. It shares the same skills (`readable-tests`, `green-handoff`, `green-review`) between Claude Code and [Pi Coding Agent](https://pi.dev).
+`tdd` is an independent plugin for readable, human-approved executable test specifications and TDD phase safeguards. It shares the same skills (`test-list`, `readable-tests`, `green-handoff`, `green-review`) between Claude Code and [Pi Coding Agent](https://pi.dev).
 
 ## Structure
 
@@ -28,6 +28,7 @@ plugins/
     package.json        # Pi manifest (exposes skills only)
     references/tdd-policy.md  # Policy shared by all skills
     skills/
+      test-list/SKILL.md
       readable-tests/SKILL.md
       green-handoff/SKILL.md
       green-review/SKILL.md
@@ -63,7 +64,7 @@ claude plugin marketplace add iai6203/devjs-devtools
 claude plugin install tdd@devjs-devtools
 ```
 
-Invoke `/tdd:readable-tests`, `/tdd:green-handoff`, or `/tdd:green-review` in Claude Code.
+Invoke `/tdd:test-list`, `/tdd:readable-tests`, `/tdd:green-handoff`, or `/tdd:green-review` in Claude Code.
 
 ### Pi Coding Agent (`tdd`)
 
@@ -77,7 +78,7 @@ pi install ./plugins/tdd
 # pi install /path/to/devjs-devtools/plugins/tdd
 ```
 
-Invoke `/skill:readable-tests`, `/skill:green-handoff`, or `/skill:green-review` in Pi. Local installation references the directory without copying files, so keep the cloned directory in place. If another skill with the same name is already present, Pi warns about the name collision and uses the first discovered skill; remove duplicate paths.
+Invoke `/skill:test-list`, `/skill:readable-tests`, `/skill:green-handoff`, or `/skill:green-review` in Pi. Local installation references the directory without copying files, so keep the cloned directory in place. If another skill with the same name is already present, Pi warns about the name collision and uses the first discovered skill; remove duplicate paths.
 
 The Pi manifest exists only at `plugins/tdd/package.json`. Installing the remote Git repository root directly does not discover `tdd` with this layout; npm publishing is out of scope.
 
@@ -127,6 +128,7 @@ codex plugin add devtools@devjs-devtools
 
 ### Testing (`tdd`, Claude Code + Pi)
 
+- Claude Code: `/tdd:test-list` / Pi: `/skill:test-list` — Turns requirements into a test list of normal, failure, and boundary cases with open policy questions, and gets it approved before RED tests are written.
 - Claude Code: `/tdd:readable-tests` / Pi: `/skill:readable-tests` — Writes and reviews tests as readable executable specifications, with safeguards for TDD RED approval and GREEN implementation.
 - Claude Code: `/tdd:green-handoff` / Pi: `/skill:green-handoff` — Writes a self-contained prompt for delegating GREEN implementation to another agent, based on approved RED tests.
 - Claude Code: `/tdd:green-review` / Pi: `/skill:green-review` — Reviews a GREEN implementation finished by another agent: approved-test preservation, change scope, rerun checks, and report comparison, ending with a verdict.
