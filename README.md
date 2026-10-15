@@ -1,172 +1,143 @@
 # devjs-devtools
 
-[한국어](README.md) | [English](README.en.md)
+일상적인 개발 워크플로우를 자동화하는 [Claude Code](https://claude.com/claude-code) 플러그인 마켓플레이스입니다.
 
-일상적인 개발 워크플로우를 자동화하는 [Claude Code](https://claude.com/claude-code) 플러그인 마켓플레이스입니다. 하나의 마켓플레이스에 여러 플러그인을 담을 수 있는 구조로, 각 플러그인은 `plugins/` 아래에 독립된 디렉터리로 관리됩니다.
+## 플러그인
 
-## How it works
+| 플러그인 | 하는 일 | 지원 환경 |
+|---|---|---|
+| [`devtools`](#devtools) | 커밋·PR·이슈·squash 자동화, 디버그 로그 삽입 | Claude Code, GitHub Copilot CLI, Codex |
+| [`tdd`](#tdd) | 사람이 승인할 수 있는 테스트 명세와 TDD 단계별 안전장치 | Claude Code, Pi Coding Agent |
+| [`plannotator-tools`](#plannotator-tools) | 입력창 위에 Plannotator 실행 버튼 추가 | Claude Code (macOS 전용) |
 
-`devtools` 플러그인은 코드를 작성하고, 디버깅하고, 변경을 기록하고, 동료와 공유하는 과정에서 반복되는 작업들을 skill 한 번으로 처리할 수 있게 해줍니다. 현재는 Conventional Commits 기반의 git/GitHub 워크플로우(커밋·PR·이슈·squash)와 디버깅용 로그 삽입을 다루며, 앞으로 코드 분석·테스트·문서화 등 개발 전반에서 자주 쓰이는 작업들을 점진적으로 추가해나갈 예정입니다.
+## 빠른 시작 (Claude Code)
 
-`tdd`는 사람이 읽고 승인할 수 있는 실행 테스트 명세와 TDD 단계별 안전장치를 제공하는 독립 플러그인입니다. 같은 스킬(`test-list`, `readable-tests`, `green-handoff`, `green-review`)을 Claude Code와 [Pi Coding Agent](https://pi.dev)에서 공유합니다.
-
-## Structure
-
-```
-.claude-plugin/
-  marketplace.json      # 마켓플레이스 정의 (플러그인 목록)
-plugins/
-  devtools/             # 플러그인 하나당 디렉터리 하나
-    .claude-plugin/plugin.json
-    .codex-plugin/plugin.json
-    skills/
-  plannotator-tools/    # Claude Code Mod (macOS 전용)
-    .claude-plugin/plugin.json
-    hooks/
-  tdd/                  # Claude Code + Pi 독립 패키지
-    .claude-plugin/plugin.json
-    package.json        # Pi manifest (skills만 노출)
-    references/tdd-policy.md  # 스킬 공통 정책
-    skills/
-      test-list/SKILL.md
-      readable-tests/SKILL.md
-      green-handoff/SKILL.md
-      green-review/SKILL.md
-```
-
-새 플러그인을 추가하려면 `plugins/<name>/` 디렉터리를 만들고 `.claude-plugin/marketplace.json`의 `plugins` 배열에 `"source": "./plugins/<name>"` 항목을 추가합니다.
-
-## Installation
-
-### Claude Code
-
-마켓플레이스를 추가하고 플러그인을 설치합니다.
+마켓플레이스를 추가한 뒤 필요한 플러그인을 설치합니다.
 
 ```
 /plugin marketplace add iai6203/devjs-devtools
 /plugin install devtools@devjs-devtools
+/plugin install tdd@devjs-devtools
 /plugin install plannotator-tools@devjs-devtools
 ```
 
-> `plannotator-tools`는 Claude Code Mod라 Claude Code에서만 동작하며, macOS 전용입니다. Plannotator CLI(`plannotator`)가 설치되어 있어야 합니다.
+터미널에서는 같은 작업을 `claude plugin marketplace add ...`, `claude plugin install ...`로 할 수 있습니다.
 
-로컬에서 테스트하려면 디렉터리 경로로 추가할 수 있습니다.
+업데이트:
 
 ```
-/plugin marketplace add /path/to/devjs-devtools
-/plugin install devtools@devjs-devtools
+/plugin marketplace update devjs-devtools
 ```
 
-`tdd`를 설치하려면 터미널에서 다음 Claude CLI 명령을 실행합니다.
+다른 에이전트에서 쓰려면 [다른 에이전트에서 사용](#다른-에이전트에서-사용)을 참고하세요.
 
-```sh
-claude plugin marketplace add iai6203/devjs-devtools
-claude plugin install tdd@devjs-devtools
-```
+## devtools
 
-Claude Code에서 `/tdd:test-list`, `/tdd:readable-tests`, `/tdd:green-handoff`, `/tdd:green-review`로 호출합니다.
+코드를 작성하고, 디버깅하고, 변경을 기록하고, 공유하는 과정에서 반복되는 작업을 skill 한 번으로 처리합니다.
 
-### Pi Coding Agent (`tdd`)
+| 분류 | 스킬 | 설명 |
+|---|---|---|
+| Git | `/devtools:commit` | 스테이징된 변경을 분석해 Conventional Commits 메시지를 만들고 커밋 |
+| Git | `/devtools:squash` | 현재 브랜치의 커밋을 자동 생성된 Conventional Commits 메시지로 squash |
+| GitHub | `/devtools:pr` | 커밋을 분석해 Conventional Commits 제목으로 PR 생성 |
+| GitHub | `/devtools:issue` | 라벨·담당자·템플릿이 자동 제안되는 GitHub 이슈 생성 |
+| 디버깅 | `/devtools:debug-log` | `[DEBUG]` 접두 로그문 삽입 |
 
-저장소를 clone한 뒤 저장소 루트에서 `tdd` 패키지 디렉터리를 로컬 설치합니다.
+### 기본 워크플로우
+
+1. 코드를 작성하다 추적이 필요하면 `/devtools:debug-log`로 로그를 넣습니다.
+2. `/devtools:commit`으로 커밋합니다.
+3. 브랜치 히스토리가 어수선하면 `/devtools:squash`로 의미 있는 단위로 묶습니다.
+4. `/devtools:pr`로 PR을 만듭니다.
+5. 후속 작업이 필요하면 `/devtools:issue`로 이슈를 남깁니다.
+
+## tdd
+
+사람이 읽고 승인할 수 있는 실행 테스트 명세를 만들고, TDD 단계마다 안전장치를 둡니다. 같은 스킬을 Claude Code와 [Pi Coding Agent](https://pi.dev)에서 함께 씁니다. 스킬 본문은 한국어입니다.
+
+| 단계 | Claude Code | Pi | 설명 |
+|---|---|---|---|
+| 1 | `/tdd:test-list` | `/skill:test-list` | 요구사항을 정상·실패·경계 사례와 미확정 질문으로 정리하고, RED 작성 전에 승인을 받음 |
+| 2 | `/tdd:readable-tests` | `/skill:readable-tests` | 테스트를 읽을 수 있는 실행 명세로 작성·검토 (RED 승인, GREEN 단계 안전장치 포함) |
+| 3 | `/tdd:green-handoff` | `/skill:green-handoff` | 승인된 RED 테스트를 바탕으로 다른 에이전트에게 맡길 GREEN 구현 지시문 작성 |
+| 4 | `/tdd:green-review` | `/skill:green-review` | 다른 에이전트가 끝낸 GREEN 구현 검수 (테스트 보존, 변경 범위, 검증 재실행, 보고 대조) |
+
+### Pi에 설치
+
+저장소를 clone한 뒤 `tdd` 패키지 디렉터리를 로컬 설치합니다.
 
 ```sh
 git clone https://github.com/iai6203/devjs-devtools.git
 cd devjs-devtools
 pi install ./plugins/tdd
-# 또는 절대 경로로 설치:
-# pi install /path/to/devjs-devtools/plugins/tdd
 ```
 
-Pi에서 `/skill:test-list`, `/skill:readable-tests`, `/skill:green-handoff`, `/skill:green-review`로 호출합니다. 로컬 설치는 파일을 복사하지 않고 해당 경로를 참조하므로 clone한 디렉터리를 유지해야 합니다. 기존에 같은 이름의 스킬이 있으면 충돌 경고가 발생하고 먼저 발견된 스킬이 사용되므로 중복 경로를 정리하세요.
+> **참고**
+> - 로컬 설치는 파일을 복사하지 않고 경로를 참조합니다. clone한 디렉터리를 지우지 마세요.
+> - 같은 이름의 스킬이 이미 있으면 충돌 경고가 뜨고 먼저 발견된 스킬이 쓰입니다. 중복 경로를 정리하세요.
+> - Pi manifest는 `plugins/tdd/package.json`에만 있습니다. 저장소 루트를 원격 Git으로 직접 설치하는 방식과 npm 배포는 지원하지 않습니다.
 
-Pi manifest는 `plugins/tdd/package.json`에만 있습니다. 원격 Git 저장소 루트 직접 설치로 `tdd`가 발견되는 구성은 아니며, npm 배포는 범위 밖입니다.
-
-### GitHub Copilot CLI
-
-마켓플레이스를 추가하고 플러그인을 설치합니다.
-
-```
-copilot plugin marketplace add iai6203/devjs-devtools
-copilot plugin install devtools@devjs-devtools
-```
-
-### Codex
-
-마켓플레이스를 추가하고 플러그인을 설치합니다.
-
-```
-codex plugin marketplace add iai6203/devjs-devtools
-codex plugin add devtools@devjs-devtools
-```
-
-## The Basic Workflow
-
-1. **코드를 작성**하면서 추적이 필요하면 `/devtools:debug-log`로 `[DEBUG]` 접두 로그문을 삽입합니다.
-2. **`/devtools:commit`** 으로 Conventional Commits 형식 메시지를 자동 생성하고 커밋합니다.
-3. 브랜치 히스토리가 어수선하면 **`/devtools:squash`** 로 의미 있는 커밋 단위로 묶습니다.
-4. **`/devtools:pr`** 로 커밋들을 분석해 Conventional Commits 제목의 PR을 만듭니다.
-5. 후속 작업이 필요하면 **`/devtools:issue`** 로 라벨·담당자가 자동 제안된 GitHub 이슈를 생성합니다.
-
-## What's Inside
-
-> 현재 포함된 skill 목록입니다. 앞으로 개발 과정에서 자주 사용하게 되는 도구들을 계속 추가해나갈 예정입니다.
-
-### Git
-
-- `/devtools:commit` — 스테이징된 변경을 분석해 Conventional Commits 메시지를 생성하고 커밋합니다.
-- `/devtools:squash` — 현재 브랜치의 커밋을 자동 생성된 Conventional Commits 메시지로 squash합니다.
-
-### GitHub
-
-- `/devtools:pr` — 커밋을 분석해 Conventional Commits 제목으로 PR을 생성합니다.
-- `/devtools:issue` — 라벨·담당자·템플릿이 자동 제안되는 GitHub 이슈를 생성합니다.
-
-### Debugging
-
-- `/devtools:debug-log` — 디버깅을 위한 `[DEBUG]` 접두 로그문을 삽입합니다.
-
-### Testing (`tdd`, Claude Code + Pi)
-
-- Claude Code: `/tdd:test-list` / Pi: `/skill:test-list` — 요구사항을 정상·실패·경계 사례와 미확정 질문으로 정리한 테스트 목록을 만들고, RED 작성 전에 승인을 받습니다.
-- Claude Code: `/tdd:readable-tests` / Pi: `/skill:readable-tests` — 테스트를 읽을 수 있는 실행 명세로 작성·검토하고, TDD RED 승인 및 GREEN 구현 단계의 안전장치를 따릅니다.
-- Claude Code: `/tdd:green-handoff` / Pi: `/skill:green-handoff` — 승인된 RED 테스트를 바탕으로, 다른 에이전트에게 GREEN 구현을 맡길 지시문을 작성합니다.
-- Claude Code: `/tdd:green-review` / Pi: `/skill:green-review` — 다른 에이전트가 끝낸 GREEN 구현을 검수합니다. 승인된 테스트 보존, 변경 범위, 검증 재실행, 보고 대조를 확인하고 판정합니다.
-
-공유 스킬 본문은 한국어입니다.
-
-### Plannotator (`plannotator-tools`, macOS 전용)
+## plannotator-tools
 
 Claude Code 입력창 위에 버튼 2개를 추가합니다. 실행 결과는 클립보드에 복사됩니다.
 
-- `[Plannotator] Last` — `plannotator last | pbcopy`를 실행합니다.
-- `[Plannotator] Review` — `plannotator review | pbcopy`를 실행합니다.
+| 버튼 | 실행 명령 |
+|---|---|
+| `[Plannotator] Last` | `plannotator last \| pbcopy` |
+| `[Plannotator] Review` | `plannotator review \| pbcopy` |
 
-실행 중인 버튼을 다시 누르면 이전 plannotator 프로세스를 종료하고 새로 시작합니다(이전 브라우저 탭은 직접 닫아야 합니다).
+- 실행 중인 버튼을 다시 누르면 이전 plannotator 프로세스를 종료하고 새로 시작합니다. 이전 브라우저 탭은 직접 닫아야 합니다.
+- Claude Code Mod라서 Claude Code에서만, macOS에서만 동작합니다.
+- Plannotator CLI(`plannotator`)가 설치되어 있어야 합니다.
 
-## Philosophy
+## 다른 에이전트에서 사용
+
+`devtools`는 GitHub Copilot CLI와 Codex에서도 쓸 수 있습니다.
+
+| 에이전트 | 설치 | 업데이트 |
+|---|---|---|
+| GitHub Copilot CLI | `copilot plugin marketplace add iai6203/devjs-devtools`<br>`copilot plugin install devtools@devjs-devtools` | `copilot plugin marketplace update devjs-devtools` |
+| Codex | `codex plugin marketplace add iai6203/devjs-devtools`<br>`codex plugin add devtools@devjs-devtools` | `codex plugin marketplace upgrade devjs-devtools` |
+
+## 철학
 
 - **반복은 자동화한다.** 매번 손으로 하던 작업을 skill 한 번으로 끝낼 수 있게 합니다.
 - **표준을 따른다.** 가능한 곳에서는 Conventional Commits 같은 공용 규약을 따라 다른 도구·자동화와 호환되도록 합니다.
 - **작게, 독립적으로.** 각 skill은 하나의 작업만 책임지고 다른 skill에 의존하지 않습니다.
 - **자동화는 검증 가능해야 한다.** 결과는 사람이 읽을 수 있는 형태로 남깁니다.
 
-## Updating
+## 기여하기
 
-Claude Code:
-
-```
-/plugin marketplace update devjs-devtools
-```
-
-GitHub Copilot CLI:
+### 디렉터리 구조
 
 ```
-copilot plugin marketplace update devjs-devtools
+.claude-plugin/
+  marketplace.json          # 마켓플레이스 정의 (플러그인 목록)
+plugins/
+  devtools/
+    .claude-plugin/plugin.json
+    .codex-plugin/plugin.json
+    skills/
+  plannotator-tools/        # Claude Code Mod (macOS 전용)
+    .claude-plugin/plugin.json
+    hooks/
+  tdd/                      # Claude Code + Pi 공용 패키지
+    .claude-plugin/plugin.json
+    package.json            # Pi manifest (skills만 노출)
+    references/tdd-policy.md  # 스킬 공통 정책
+    skills/
 ```
 
-Codex:
+### 새 플러그인 추가
+
+1. `plugins/<name>/` 디렉터리를 만듭니다.
+2. `.claude-plugin/marketplace.json`의 `plugins` 배열에 `"source": "./plugins/<name>"` 항목을 추가합니다.
+
+### 로컬 테스트
+
+저장소 경로로 마켓플레이스를 추가합니다.
 
 ```
-codex plugin marketplace upgrade devjs-devtools
+/plugin marketplace add /path/to/devjs-devtools
+/plugin install devtools@devjs-devtools
 ```
