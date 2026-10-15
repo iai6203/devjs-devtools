@@ -26,6 +26,7 @@ plugins/
   tdd/                  # Claude Code + Pi 독립 패키지
     .claude-plugin/plugin.json
     package.json        # Pi manifest (skills만 노출)
+    references/tdd-policy.md  # 스킬 공통 정책
     skills/
       readable-tests/SKILL.md
       green-handoff/SKILL.md

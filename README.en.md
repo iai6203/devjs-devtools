@@ -26,6 +26,7 @@ plugins/
   tdd/                  # Independent Claude Code + Pi package
     .claude-plugin/plugin.json
     package.json        # Pi manifest (exposes skills only)
+    references/tdd-policy.md  # Policy shared by all skills
     skills/
       readable-tests/SKILL.md
       green-handoff/SKILL.md
