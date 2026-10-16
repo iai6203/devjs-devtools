@@ -9,6 +9,7 @@ import type {
 } from 'claude-code'
 
 import type { Target } from '../types'
+import { checkClipboard, copyToClipboard, getPlatform } from './platform'
 
 const running = atom({ plugin: 'plannotator-tools', key: 'running' } as const, {
   last: false,
@@ -38,19 +39,9 @@ const SCRIPT = 'echo $$ >&2; exec plannotator "$1"'
 
 const NOT_FOUND = 'plannotator를 실행할 수 없습니다. 설치되어 있는지 확인하세요.'
 
-let isMac: Promise<boolean> | undefined
 let nextId = 0
 const runs: Partial<Record<Target, Run>> = {}
 let pending: Timer | undefined
-
-function checkMac($: EngineInterface) {
-  isMac ??= $.process
-    .run(['uname', '-s'])
-    .then(({ stdout }) => stdout.trim() === 'Darwin')
-    .catch(() => false)
-
-  return isMac
-}
 
 function stop($: EngineInterface, run: Run) {
   // PID를 받기 전이면 스트림을 닫는다; 대기 중인 읽기가 있어 끝을 기다리지 않는다
@@ -67,6 +58,16 @@ function setRunning($: EngineInterface, target: Target, value: boolean) {
 
 // 실행 중인 같은 버튼을 다시 누르면 이전 plannotator를 종료하고 새로 시작한다
 async function start($: EngineInterface, target: Target) {
+  const platform = await getPlatform($)
+  if (platform === 'unsupported') return
+
+  // 브라우저 리뷰를 마친 뒤 복사 불가를 알게 되지 않도록 먼저 확인한다.
+  const unavailable = await checkClipboard($, platform)
+  if (unavailable) {
+    $.ui.toast(unavailable)
+    return
+  }
+
   const previous = runs[target]
   if (previous) {
     await stop($, previous)
@@ -129,12 +130,8 @@ async function start($: EngineInterface, target: Target) {
     return
   }
 
-  const copied = await $.process.run(['pbcopy'], { stdin: stdout }).catch(() => null)
-  $.ui.toast(
-    copied?.exitCode === 0
-      ? `plannotator ${target} 결과를 클립보드에 복사했습니다.`
-      : '클립보드 복사에 실패했습니다.',
-  )
+  const copyError = await copyToClipboard($, platform, stdout)
+  $.ui.toast(copyError ?? `plannotator ${target} 결과를 클립보드에 복사했습니다.`)
 }
 
 function setReserved($: EngineInterface, value: boolean) {
@@ -187,7 +184,7 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.surface !== 'terminal' || e.props.hasSurvey || !(await checkMac($))) {
+    if (e.surface !== 'terminal' || e.props.hasSurvey || (await getPlatform($)) === 'unsupported') {
       return next(e)
     }
 

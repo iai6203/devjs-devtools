@@ -23,7 +23,7 @@
     {
       "name": "plannotator-tools",
       "source": "./plugins/plannotator-tools",
-      "description": "Plannotator Last/Review buttons above the Claude Code prompt (macOS only)",
+      "description": "Plannotator Last/Review buttons above the Claude Code prompt (macOS and WSL2 Ubuntu)",
       "author": {
         "name": "JaeSeok Kim",
         "email": "iai6203@gmail.com"
@@ -31,7 +31,7 @@
       "homepage": "https://github.com/iai6203/devjs-devtools",
       "repository": "https://github.com/iai6203/devjs-devtools",
       "category": "productivity",
-      "keywords": ["plannotator", "review", "mod", "macos"]
+      "keywords": ["plannotator", "review", "mod", "macos", "wsl2", "ubuntu"]
     },
     {
       "name": "tdd",

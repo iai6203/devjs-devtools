@@ -8,7 +8,7 @@
 |---|---|---|
 | [`devtools`](#devtools) | 커밋·PR·이슈·squash 자동화, 디버그 로그 삽입 | Claude Code, GitHub Copilot CLI, Codex |
 | [`tdd`](#tdd) | 사람이 승인할 수 있는 테스트 명세와 TDD 단계별 안전장치 | Claude Code, Pi Coding Agent |
-| [`plannotator-tools`](#plannotator-tools) | 입력창 위에 Plannotator 실행 버튼 추가 | Claude Code (macOS 전용) |
+| [`plannotator-tools`](#plannotator-tools) | 입력창 위에 Plannotator 실행 버튼 추가 | Claude Code (macOS / WSL2 Ubuntu) |
 
 ## 빠른 시작 (Claude Code)
 
@@ -79,16 +79,52 @@ pi install ./plugins/tdd
 
 ## plannotator-tools
 
-Claude Code 입력창 위에 버튼 2개를 추가합니다. 실행 결과는 클립보드에 복사됩니다.
+Claude Code 터미널 입력창 위에 버튼 2개를 추가합니다. 정상 종료한 명령의 비어 있지 않은 출력만 클립보드에 복사합니다.
 
 | 버튼 | 실행 명령 |
 |---|---|
-| `[Plannotator] Last` | `plannotator last \| pbcopy` |
-| `[Plannotator] Review` | `plannotator review \| pbcopy` |
+| `[Plannotator] Last` | `plannotator last` — 응답 중이면 턴 종료 후 실행하도록 예약하며, 다시 누르면 예약을 취소합니다. |
+| `[Plannotator] Review` | `plannotator review` |
+
+| 환경 | 클립보드 복사 |
+|---|---|
+| macOS | `pbcopy` |
+| WSL2 Ubuntu | `iconv -f UTF-8 -t UTF-16LE \| clip.exe` — Windows 클립보드에 한글·이모지를 복사합니다. |
 
 - 실행 중인 버튼을 다시 누르면 이전 plannotator 프로세스를 종료하고 새로 시작합니다. 이전 브라우저 탭은 직접 닫아야 합니다.
-- Claude Code Mod라서 Claude Code에서만, macOS에서만 동작합니다.
-- Plannotator CLI(`plannotator`)가 설치되어 있어야 합니다.
+- Claude Code Mod라서 Claude Code에서만 동작하며, macOS와 WSL2 Ubuntu를 지원합니다. 일반 Linux와 Windows 네이티브에서는 버튼을 표시하지 않습니다.
+- Claude Code를 실행하는 환경에 Plannotator CLI(`plannotator`)가 설치되어 있어야 합니다.
+- 피드백은 셸 코드가 아닌 stdin으로 전달하며, WSL 복사는 Bash의 `pipefail`로 변환 오류도 감지합니다. 실패한 복사에서 기존 클립보드 보존까지 보장하지는 않습니다.
+
+### WSL2 Ubuntu 준비 및 문제 해결
+
+WSL 안에서 Claude Code와 Plannotator를 실행해야 합니다. 다음 명령으로 필수 도구의 경로를 확인할 수 있습니다. 이 확인은 클립보드를 변경하지 않습니다.
+
+```bash
+command -v plannotator /bin/bash iconv clip.exe
+```
+
+- `iconv`가 없다면 Ubuntu의 `libc-bin` 설치와 PATH를 확인하세요.
+- `clip.exe`가 없다면 Windows PATH 연동을 확인하세요. `/etc/wsl.conf`의 `[interop]`에서 `enabled`와 `appendWindowsPath`가 비활성화되어 있지 않아야 합니다. 관련 설정 변경 후에는 WSL 재시작이 필요할 수 있습니다.
+- 도구가 있어도 복사가 실패한다면 Windows 실행 파일 호출이 가능한지 WSL interop 설정을 확인하세요. Mod는 리뷰 시작 전에 도구 존재 여부를 검사하지만, 실제 실행 가능 여부까지 보장하지는 않습니다.
+- 브라우저 실행은 Plannotator CLI에 맡깁니다. 자동으로 열리지 않으면 [공식 문서](https://github.com/backnotprop/plannotator/blob/main/apps/hook/README.md)의 `PLANNOTATOR_BROWSER` 설정을 확인하세요. `wslview`가 설치되어 있다면 Claude Code 실행 전에 `export PLANNOTATOR_BROWSER="$(command -v wslview)"`로 지정할 수 있습니다.
+- Mod는 `PLANNOTATOR_REMOTE`나 포트를 강제하지 않습니다. remote 모드의 고정 포트는 Last/Review 동시 실행 시 충돌할 수 있으므로 환경에 맞게 설정하세요.
+
+### 검증
+
+자동 테스트는 Mod 테스트 실행 기능이 있는 Claude Code에서 저장소 루트 기준으로 실행합니다.
+
+```bash
+claude plugin test plugins/plannotator-tools
+```
+
+실환경 수동 확인:
+
+1. Claude Code에서 Last/Review 버튼이 표시되고 브라우저가 열리는지 확인합니다.
+2. 한글·이모지·여러 줄 피드백을 제출한 뒤 Windows 앱에 붙여 넣어 확인합니다(macOS에서는 macOS 앱 사용).
+3. 실행 중 재시작과 응답 중 Last 예약·취소가 정상 동작하는지 확인합니다.
+
+자동 테스트는 OS와 클립보드 호출을 모의하므로 실제 브라우저·OS 클립보드 동작 확인을 대체하지 않습니다.
 
 ## 다른 에이전트에서 사용
 
@@ -118,7 +154,7 @@ plugins/
     .claude-plugin/plugin.json
     .codex-plugin/plugin.json
     skills/
-  plannotator-tools/        # Claude Code Mod (macOS 전용)
+  plannotator-tools/        # Claude Code Mod (macOS / WSL2 Ubuntu)
     .claude-plugin/plugin.json
     hooks/
   tdd/                      # Claude Code + Pi 공용 패키지

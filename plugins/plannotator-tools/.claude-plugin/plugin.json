@@ -1,6 +1,6 @@
 {
   "name": "plannotator-tools",
-  "description": "Plannotator Last/Review buttons above the Claude Code prompt (macOS only)",
+  "description": "Plannotator Last/Review buttons above the Claude Code prompt (macOS and WSL2 Ubuntu)",
   "version": "0.1.0",
   "author": {
     "name": "JaeSeok Kim",
