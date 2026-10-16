@@ -1,11 +1,13 @@
 ---
 name: green-handoff
-description: Write a self-contained GREEN implementation prompt for another coding agent from human-approved TDD RED tests. Use when RED tests are approved and the GREEN implementation will be delegated or handed off to a separate agent, or when asked to write instructions, a prompt, or a brief for GREEN work.
+description: Write a self-contained GREEN implementation prompt from human-approved TDD RED tests when handing work to another coding agent or session. Use when asked to prepare GREEN handoff instructions, a prompt, or a brief. This is optional for TDD and unnecessary when implementation stays in the current session.
 ---
 
 # GREEN 위임 지시문 작성
 
-사람이 승인한 RED 테스트를 바탕으로, 다른 코딩 에이전트가 GREEN 구현을 끝낼 수 있는 지시문을 작성한다. 지시문을 받는 에이전트는 이 대화의 맥락을 모른다고 가정하고, **지시문 하나만 읽고 작업과 검증까지 마칠 수 있게** 쓴다.
+사람이 승인한 RED 테스트를 바탕으로, 다른 코딩 에이전트·세션이 GREEN 구현을 끝낼 수 있는 지시문을 작성한다. 지시문을 받는 에이전트는 이 대화의 맥락을 모른다고 가정하고, **지시문 하나만 읽고 작업과 검증까지 마칠 수 있게** 쓴다.
+
+이 스킬은 작업을 전달할 때 사용하는 선택 사항이다. 같은 세션에서 GREEN을 구현한다면 지시문을 만들 필요 없이 `readable-tests`의 GREEN 안전장치를 따른다.
 
 이 스킬은 지시문만 작성한다. 제품 코드나 테스트를 수정하지 않고 GREEN 구현도 시작하지 않는다.
 
@@ -82,7 +84,8 @@ description: Write a self-contained GREEN implementation prompt for another codi
 
 ## 검수 기준
 - 승인된 테스트 기준: <RED 커밋 해시> 또는 파일별 `git hash-object` 값
-- 이 값과 달라진 테스트 파일이 있으면 검수에서 차단된다.
+- 이 값과 달라진 테스트 파일이 있으면 승인 근거와 갱신된 기준을 확인한다. 무승인 변경은 검수에서 차단된다.
+- 비교 기준이나 필수 검증 결과가 없으면 검증 완료라고 하지 말고, 부족한 증거와 확보 방법을 보고한다.
 
 ## 보고 형식
 - 변경한 파일과 각 파일의 핵심 변경 내용
@@ -97,4 +100,4 @@ description: Write a self-contained GREEN implementation prompt for another codi
 - 사용자가 파일로 요청하면 지정한 경로에 저장한다. 저장소 안에 저장할 때는 커밋 대상이 되지 않도록 위치를 확인한다.
 - 지시문 뒤에 짧게 덧붙인다.
   - 미확정 사항: 사람이 정해야 하지만 아직 정하지 않은 부분
-  - 검수 방법: 받는 에이전트가 끝나면 `green-review` 스킬로 결과를 검수할 수 있다
+  - 검수 방법: 구현 후 검증은 필수이며, 별도 검수 절차가 필요하면 `green-review` 스킬을 선택할 수 있다

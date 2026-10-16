@@ -55,12 +55,25 @@
 
 사람이 읽고 승인할 수 있는 실행 테스트 명세를 만들고, TDD 단계마다 안전장치를 둡니다. 같은 스킬을 Claude Code와 [Pi Coding Agent](https://pi.dev)에서 함께 씁니다. 스킬 본문은 한국어입니다.
 
-| 단계 | Claude Code | Pi | 설명 |
+| 구분 | Claude Code | Pi | 설명 |
 |---|---|---|---|
-| 1 | `/tdd:test-list` | `/skill:test-list` | 요구사항을 정상·실패·경계 사례와 미확정 질문으로 정리하고, RED 작성 전에 승인을 받음 |
-| 2 | `/tdd:readable-tests` | `/skill:readable-tests` | 테스트를 읽을 수 있는 실행 명세로 작성·검토 (RED 승인, GREEN 단계 안전장치 포함) |
-| 3 | `/tdd:green-handoff` | `/skill:green-handoff` | 승인된 RED 테스트를 바탕으로 다른 에이전트에게 맡길 GREEN 구현 지시문 작성 |
-| 4 | `/tdd:green-review` | `/skill:green-review` | 다른 에이전트가 끝낸 GREEN 구현 검수 (테스트 보존, 변경 범위, 검증 재실행, 보고 대조) |
+| 목록 | `/tdd:test-list` | `/skill:test-list` | 요구사항을 정상·실패·경계 사례와 미확정 질문으로 정리하고, RED 작성 전에 승인을 받음 |
+| 테스트·TDD | `/tdd:readable-tests` | `/skill:readable-tests` | 읽을 수 있는 테스트 명세 작성·검토와 같은 세션의 RED·GREEN·REFACTOR 안전장치 |
+| 전달 (선택) | `/tdd:green-handoff` | `/skill:green-handoff` | 승인된 RED 테스트를 바탕으로 다른 에이전트·세션에 넘길 GREEN 구현 지시문 작성 |
+| 별도 검수 (선택) | `/tdd:green-review` | `/skill:green-review` | 구현 주체와 관계없이 테스트 보존, 변경 범위, 실행 증거를 확인하고 판정 |
+
+### 기본 작업 흐름
+
+- **같은 세션**: 테스트 목록 → RED 승인 → GREEN → 검증 → 필요 시 REFACTOR·재검증. 위임 지시문이나 다른 에이전트의 작업 보고는 필요하지 않습니다.
+- **다른 에이전트·세션으로 전달**: 승인된 RED → `green-handoff` → 구현·검증. 별도 검수 절차가 필요하면 `green-review`를 선택합니다.
+- 요청한 단계만 수행하며, 다음 단계는 사람의 승인을 받은 뒤 진행합니다. 승인된 사례 하나 또는 작은 묶음으로 반복할 수 있습니다.
+- 별도 검수 스킬 사용은 선택이지만 구현 결과 검증은 필수입니다. 같은 에이전트의 자체 검증을 독립 검수로 표현하지 않습니다.
+
+### 접근성과 검증 원칙
+
+- 테스트 이름의 언어·형식과 Given / When / Then 등 구분 형식은 고정하지 않습니다. 한국어가 아닌 이름에는 가까운 한국어 주석으로 조건과 기대 동작을 설명합니다.
+- 설명하는 변수·함수의 실제 식별자 괄호 병기는 필수입니다. 이름이나 주석 형식을 바꾸더라도 코드와 설명의 연결을 유지합니다.
+- `green-review`는 **차단 / 수정 필요 / 검증 불충분 / 승인 가능**으로 판정합니다. 비교 기준이나 필수 실행 결과가 없으면 승인 가능으로 판정하지 않고, 부족한 증거와 확보 방법을 보고합니다.
 
 ### Pi에 설치
 
@@ -177,3 +190,5 @@ plugins/
 /plugin marketplace add /path/to/devjs-devtools
 /plugin install devtools@devjs-devtools
 ```
+
+> Generated-with: AI
