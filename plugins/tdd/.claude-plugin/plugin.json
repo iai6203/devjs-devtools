@@ -1,7 +1,7 @@
 {
   "name": "tdd",
   "description": "Readable executable test specifications and TDD phase safeguards",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": {
     "name": "JaeSeok Kim",
     "email": "iai6203@gmail.com"
