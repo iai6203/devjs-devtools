@@ -1,6 +1,6 @@
 {
   "name": "@iai6203/devjs-devtools-tdd",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "pi": {
     "skills": ["./skills"]
