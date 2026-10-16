@@ -21,6 +21,8 @@ type Host = {
   os?: string
   release?: string
   unameCode?: number
+  // 렌더 dispatch가 중단되어 uname -r 호출이 거부되는 횟수
+  unameAborts?: number
   outputs?: string[]
   code?: number
   missing?: string
@@ -45,6 +47,10 @@ function fakeHost(on: On, host: Host = {}) {
 
   on('process.run', async ($, e) => {
     if (e.argv[0] === 'uname') {
+      if (e.argv[1] === '-r' && (host.unameAborts ?? 0) > 0) {
+        host.unameAborts!--
+        throw new Error('dispatch abandoned')
+      }
       const value = e.argv[1] === '-r' ? host.release ?? '6.8.0-generic' : host.os ?? 'Darwin'
       return { value: { ...ran(`${value}\n`), exitCode: host.unameCode ?? 0 } }
     }
@@ -106,6 +112,17 @@ test('macOS 터미널에서 버튼 2개를 그린다', async ($, on) => {
   expect((await ui.find({ key: 'last' }))?.text).toBe('[Plannotator] Last')
   expect((await ui.find({ key: 'review' }))?.text).toBe('[Plannotator] Review')
   await ui.unmount()
+})
+
+test('WSL2에서 첫 렌더의 OS 판별이 중단되어도 다음 렌더에서 버튼을 그린다', async ($, on) => {
+  fakeHost(on, { os: 'Linux', release: '6.18.40.1-microsoft-standard-WSL2', unameAborts: 1 })
+  const first = await $.ui.mount(BAND)
+  expect(await first.find({ key: 'last' })).toBeUndefined()
+  await first.unmount()
+
+  const second = await $.ui.mount(BAND)
+  expect((await second.find({ key: 'last' }))?.text).toBe('[Plannotator] Last')
+  await second.unmount()
 })
 
 test('일반 Linux에서는 버튼을 그리지 않는다', async ($, on) => {

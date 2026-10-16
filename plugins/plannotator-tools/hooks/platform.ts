@@ -1,12 +1,44 @@
+import { atom, read, update } from 'claude-code'
 import type { EngineInterface } from 'claude-code'
 
-type Platform = 'macos' | 'wsl' | 'unsupported'
+import type { Platform } from '../types'
+
 type SupportedPlatform = Exclude<Platform, 'unsupported'>
 
-let platform: Promise<Platform> | undefined
+const detected = atom({ plugin: 'plannotator-tools', key: 'platform' } as const, null as Platform | null)
 
-export function getPlatform($: EngineInterface): Promise<Platform> {
-  platform ??= detectPlatform($).catch(() => 'unsupported')
+let detecting: Promise<Platform> | undefined
+
+// $.process.run은 호출한 dispatch에 묶여, ui.render dispatch가 중단되면 함께 거부된다.
+// 판별에 성공한 결과만 $.state에 저장하고, 거부되면 저장하지 않아 다음 호출에서 다시 판별한다.
+// 렌더 중에 읽으므로 나중에 판별이 끝나면 밴드가 다시 그려진다.
+export async function getPlatform($: EngineInterface): Promise<Platform> {
+  const known = await read($, detected)
+  if (known) return known
+
+  const current = detecting ??= detectPlatform($)
+  let platform: Platform
+  try {
+    platform = await current
+  } catch {
+    return 'unsupported'
+  } finally {
+    if (detecting === current) detecting = undefined
+  }
+  // 렌더 중에는 $.state를 쓸 수 없으므로 저장 실패는 무시하고 판별 결과를 그대로 쓴다
+  await savePlatform($, platform).catch(() => undefined)
+  return platform
+}
+
+// session.start는 중단되지 않으므로 렌더가 시작한 판별과 공유하지 않고 따로 판별한다
+export async function warmPlatform($: EngineInterface) {
+  if (await read($, detected)) return
+  const platform = await detectPlatform($).catch(() => undefined)
+  if (platform) await savePlatform($, platform)
+}
+
+async function savePlatform($: EngineInterface, platform: Platform) {
+  await update($, detected, () => platform)
   return platform
 }
 

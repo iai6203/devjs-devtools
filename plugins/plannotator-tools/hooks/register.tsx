@@ -9,7 +9,7 @@ import type {
 } from 'claude-code'
 
 import type { Target } from '../types'
-import { checkClipboard, copyToClipboard, getPlatform } from './platform'
+import { checkClipboard, copyToClipboard, getPlatform, warmPlatform } from './platform'
 
 const running = atom({ plugin: 'plannotator-tools', key: 'running' } as const, {
   last: false,
@@ -154,6 +154,12 @@ async function pressLast($: EngineInterface) {
 }
 
 export const register: Register = on => {
+  // 첫 렌더의 판별이 중단되어도 여기서 판별을 마치면 밴드가 다시 그려진다
+  on('session.start', async ($, e, next) => {
+    await warmPlatform($)
+    return next(e)
+  })
+
   on('turn.start', async ($, e, next) => {
     await update($, responding, () => true)
     return next(e)
