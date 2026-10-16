@@ -9,6 +9,7 @@ import type {
 } from 'claude-code'
 
 import type { Target } from '../types'
+import { HOST_MESSAGES_FILE_ENV, lastInput, removeMessagesFile, writeMessagesFile } from './messages'
 import { checkClipboard, copyToClipboard, getPlatform, warmPlatform } from './platform'
 
 const running = atom({ plugin: 'plannotator-tools', key: 'running' } as const, {
@@ -35,7 +36,7 @@ type Run = {
 }
 
 // 셸이 자기 PID를 stderr 첫 줄에 남긴 뒤 plannotator로 exec해, 재시작 시 그 PID로 종료한다
-const SCRIPT = 'echo $$ >&2; exec plannotator "$1"'
+const SCRIPT = 'echo $$ >&2; exec plannotator "$@"'
 
 const NOT_FOUND = 'plannotator를 실행할 수 없습니다. 설치되어 있는지 확인하세요.'
 
@@ -68,13 +69,25 @@ async function start($: EngineInterface, target: Target) {
     return
   }
 
+  // Last는 현재 세션의 응답을 직접 넘겨, 같은 디렉토리의 다른 세션이 열리지 않게 한다
+  const input = target === 'last' ? await lastInput($) : undefined
+  if (input === null) {
+    $.ui.toast('plannotator last: 주석을 달 응답이 아직 없습니다.')
+    return
+  }
+
   const previous = runs[target]
   if (previous) {
     await stop($, previous)
   }
 
+  const file = input?.file && (await writeMessagesFile($, input.file)) ? input.file : undefined
   const id = ++nextId
-  const stream = $.process.spawn({ argv: ['/bin/sh', '-c', SCRIPT, 'sh', target] })
+  const stream = $.process.spawn({
+    argv: ['/bin/sh', '-c', SCRIPT, 'sh', ...(input ? ['annotate-last', '--stdin'] : [target])],
+    ...(input ? { input: input.text } : {}),
+    ...(file ? { env: { [HOST_MESSAGES_FILE_ENV]: file.path } } : {}),
+  })
   const run: Run = { id, stream }
   const isCurrent = () => runs[target]?.id === id
   runs[target] = run
@@ -99,6 +112,7 @@ async function start($: EngineInterface, target: Target) {
     }
   } catch {
     if (isCurrent()) {
+      if (file) await removeMessagesFile($, file.path)
       delete runs[target]
       await setRunning($, target, false)
       $.ui.toast(NOT_FOUND)
@@ -106,10 +120,11 @@ async function start($: EngineInterface, target: Target) {
     return
   }
 
-  // 재시작으로 대체된 실행은 결과를 버린다
+  // 재시작으로 대체된 실행은 결과를 버린다; 같은 경로의 messages.json은 새 실행이 쓴다
   if (!isCurrent()) {
     return
   }
+  if (file) await removeMessagesFile($, file.path)
   delete runs[target]
   await setRunning($, target, false)
 
