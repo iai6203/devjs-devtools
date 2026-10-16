@@ -28,7 +28,19 @@ type Host = {
   missing?: string
   copyCode?: number
   copyThrows?: boolean
+  // 현재 세션의 transcript; 기본은 응답 하나
+  messages?: { role: 'user' | 'assistant'; text: string }[]
+  env?: Record<string, string>
+  // messages.json 작성 명령의 종료 코드
+  writeCode?: number
 }
+
+const SESSION_ID = 'session-1'
+const HOME = '/home/me'
+const MESSAGES_PATH = `${HOME}/.plannotator/claude-code-mod/plannotator-tools/${SESSION_ID}/messages.json`
+const WRITE_SCRIPT = 'umask 077 && mkdir -p "$(dirname "$1")" && cat > "$1"'
+
+type Launch = { args: string[]; input?: string; env?: Record<string, string> }
 
 function ran(stdout: string) {
   return { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
@@ -41,6 +53,9 @@ function fakeHost(on: On, host: Host = {}) {
   const toasts: string[] = []
   const spawned: string[] = []
   const killed: string[] = []
+  const launches: Launch[] = []
+  const written: { path: string; json: string }[] = []
+  const removed: string[] = []
   const kills = new Map<string, () => void>()
   let onSpawn = () => {}
   const nextSpawn = () => new Promise<void>(resolve => (onSpawn = resolve))
@@ -57,6 +72,14 @@ function fakeHost(on: On, host: Host = {}) {
     if (e.argv[0] === '/bin/sh' && e.argv[2] === 'command -v "$1" >/dev/null 2>&1') {
       return { value: { ...ran(''), exitCode: e.argv[4] === host.missing ? 1 : 0 } }
     }
+    if (e.argv[0] === '/bin/sh' && e.argv[2] === WRITE_SCRIPT) {
+      written.push({ path: e.argv[4] ?? '', json: e.init?.stdin ?? '' })
+      return { value: { ...ran(''), exitCode: host.writeCode ?? 0 } }
+    }
+    if (e.argv[0] === 'rm') {
+      removed.push(e.argv[2] ?? '')
+      return { value: ran('') }
+    }
     if (e.argv[0] === 'kill') {
       killed.push(e.argv[1] ?? '')
       kills.get(e.argv[1] ?? '')?.()
@@ -72,10 +95,16 @@ function fakeHost(on: On, host: Host = {}) {
   })
 
   on('process.spawn', async function* ($, e) {
-    // argv: /bin/sh -c <script> sh <target>
+    // argv: /bin/sh -c <script> sh <plannotator 인자...>
     const output = host.outputs?.[spawned.length] ?? ''
     const pid = String(1000 + spawned.length)
-    spawned.push(e.argv[4] ?? '')
+    const args = e.argv.slice(4)
+    spawned.push(args[0] === 'annotate-last' ? 'last' : args[0] ?? '')
+    launches.push({
+      args,
+      ...(e.input !== undefined ? { input: e.input } : {}),
+      ...(e.env ? { env: { ...e.env } } : {}),
+    })
     yield { stream: 'stderr' as const, text: `${pid}\n` }
     onSpawn()
     if (output === 'hang') {
@@ -87,6 +116,16 @@ function fakeHost(on: On, host: Host = {}) {
     }
     return { value: { code: host.code ?? 0, signal: null } }
   })
+
+  on('session.messages', () => ({
+    value: (host.messages ?? [
+      { role: 'user', text: '질문' },
+      { role: 'assistant', text: '답변' },
+    ]).map(message => ({ ...message, toolUses: [] })),
+  }))
+  on('session.id', () => ({ value: SESSION_ID }))
+  on('env.get', ($, e) => ({ value: { HOME, ...host.env }[e.name] }))
+  on('fs.exists', () => ({ value: false }))
 
   on('ui.toast', ($, e) => {
     toasts.push(e.text)
@@ -102,7 +141,9 @@ function fakeHost(on: On, host: Host = {}) {
     return Box({ key: 'engine' })
   })
 
-  return { copied, copyCommands, toasts, spawned, killed, nextSpawn }
+  return {
+    copied, copyCommands, toasts, spawned, killed, nextSpawn, launches, written, removed,
+  }
 }
 
 test('macOS 터미널에서 버튼 2개를 그린다', async ($, on) => {
@@ -503,5 +544,126 @@ test('응답 중이 아니면 Last를 바로 실행한다', async ($, on) => {
   await ui.press({ key: 'last' })
 
   expect(host.spawned).toEqual(['last'])
+  await ui.unmount()
+})
+
+test('Last는 현재 세션의 최신 응답을 stdin으로 넘겨 다른 세션을 열지 않는다', async ($, on) => {
+  // Given: 현재 세션에 응답이 하나뿐이다.
+  const host = fakeHost(on, { outputs: ['# feedback'] })
+  const ui = await $.ui.mount(BAND)
+
+  // When: Last 버튼을 누른다.
+  await ui.press({ key: 'last' })
+
+  // Then: 세션을 추측하는 plannotator last 대신 응답을 stdin으로 받는 annotate-last를 실행한다.
+  expect(host.launches).toEqual([{ args: ['annotate-last', '--stdin'], input: '답변' }])
+  expect(host.written).toEqual([])
+  expect(host.copied).toEqual(['# feedback'])
+  await ui.unmount()
+})
+
+test('응답이 여러 개면 현재 세션의 최근 응답 목록을 messages.json으로 넘기고 끝나면 지운다', async ($, on) => {
+  // Given: 도구 호출로 나뉜 최신 응답과 이전 응답이 있다.
+  const host = fakeHost(on, {
+    outputs: ['# feedback'],
+    messages: [
+      { role: 'user', text: '첫 질문' },
+      { role: 'assistant', text: '첫 답변' },
+      { role: 'user', text: '둘째 질문' },
+      { role: 'assistant', text: '확인해볼게요.' },
+      { role: 'assistant', text: '' },
+      { role: 'assistant', text: '둘째 답변' },
+    ],
+  })
+  const ui = await $.ui.mount(BAND)
+
+  // When: Last 버튼을 누른다.
+  await ui.press({ key: 'last' })
+
+  // Then: 최신순 목록을 데이터 디렉토리의 claude-code-mod/ 아래에 쓰고 그 경로를 CLI에 알려준다.
+  expect(host.written.map(file => file.path)).toEqual([MESSAGES_PATH])
+  const file = JSON.parse(host.written[0]?.json ?? '{}')
+  expect(file.v).toBe(1)
+  expect(file.messages.map((m: { text: string }) => m.text)).toEqual([
+    '확인해볼게요.\n둘째 답변',
+    '첫 답변',
+  ])
+  expect(host.launches).toEqual([{
+    args: ['annotate-last', '--stdin'],
+    input: '확인해볼게요.\n둘째 답변',
+    env: { PLANNOTATOR_HOST_MESSAGES_FILE: MESSAGES_PATH },
+  }])
+  expect(host.removed).toEqual([MESSAGES_PATH])
+  expect(host.copied).toEqual(['# feedback'])
+  await ui.unmount()
+})
+
+const TWO_ANSWERS = [
+  { role: 'assistant' as const, text: '이전 답변' },
+  { role: 'user' as const, text: '질문' },
+  { role: 'assistant' as const, text: '최신 답변' },
+]
+
+for (const [name, dataDir, path] of [
+  ['PLANNOTATOR_DATA_DIR', '~/custom', `${HOME}/custom`],
+  ['XDG_DATA_HOME', '/xdg', '/xdg/plannotator'],
+] as const) {
+  test(`${name}가 있으면 CLI와 같은 데이터 디렉토리에 messages.json을 쓴다`, async ($, on) => {
+    // Given: 데이터 디렉토리를 환경변수(name)로 지정했다.
+    const host = fakeHost(on, { outputs: ['ok'], messages: TWO_ANSWERS, env: { [name]: dataDir } })
+    const ui = await $.ui.mount(BAND)
+
+    // When: Last 버튼을 누른다.
+    await ui.press({ key: 'last' })
+
+    // Then: 그 디렉토리(path)의 claude-code-mod/ 아래에 쓴다.
+    expect(host.written.map(file => file.path)).toEqual([
+      `${path}/claude-code-mod/plannotator-tools/${SESSION_ID}/messages.json`,
+    ])
+    await ui.unmount()
+  })
+}
+
+for (const host of [{ env: { PLANNOTATOR_DATA_DIR: 'relative' } }, { writeCode: 1 }]) {
+  test(`messages.json을 쓸 수 없으면(${JSON.stringify(host)}) 최신 응답만 넘긴다`, async ($, on) => {
+    // Given: CLI와 같은 경로를 정할 수 없거나 파일 작성이 실패한다(host).
+    const fake = fakeHost(on, { outputs: ['ok'], messages: TWO_ANSWERS, ...host })
+    const ui = await $.ui.mount(BAND)
+
+    // When: Last 버튼을 누른다.
+    await ui.press({ key: 'last' })
+
+    // Then: 선택기 없이 현재 세션의 최신 응답으로 연다.
+    expect(fake.launches).toEqual([{ args: ['annotate-last', '--stdin'], input: '최신 답변' }])
+    expect(fake.removed).toEqual([])
+    expect(fake.copied).toEqual(['ok'])
+    await ui.unmount()
+  })
+}
+
+test('현재 세션에 응답이 없으면 실행하지 않고 안내한다', async ($, on) => {
+  // Given: 사용자 메시지와 텍스트 없는 응답만 있다.
+  const host = fakeHost(on, {
+    messages: [{ role: 'user', text: '질문' }, { role: 'assistant', text: '  ' }],
+  })
+  const ui = await $.ui.mount(BAND)
+
+  // When: Last 버튼을 누른다.
+  await ui.press({ key: 'last' })
+
+  // Then: 다른 세션을 열지 않도록 실행하지 않는다.
+  expect(host.spawned).toEqual([])
+  expect(host.toasts).toEqual(['plannotator last: 주석을 달 응답이 아직 없습니다.'])
+  expect((await ui.find({ key: 'last' }))?.text).toBe(LAST)
+  await ui.unmount()
+})
+
+test('Review는 세션 메시지 없이 plannotator review를 실행한다', async ($, on) => {
+  const host = fakeHost(on, { outputs: ['LGTM'] })
+  const ui = await $.ui.mount(BAND)
+
+  await ui.press({ key: 'review' })
+
+  expect(host.launches).toEqual([{ args: ['review'] }])
   await ui.unmount()
 })
