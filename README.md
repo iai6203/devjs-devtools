@@ -7,7 +7,7 @@
 | 플러그인 | 하는 일 | 지원 환경 |
 |---|---|---|
 | [`devtools`](#devtools) | 커밋·PR·이슈·squash 자동화, 디버그 로그 삽입 | Claude Code, GitHub Copilot CLI, Codex |
-| [`tdd`](#tdd) | 사람이 승인할 수 있는 테스트 명세와 TDD 단계별 안전장치 | Claude Code, Pi Coding Agent |
+| [`tdd`](#tdd) | 사람이 승인할 수 있는 테스트 명세와 TDD 단계별 안전장치 | Claude Code, Pi Coding Agent, Codex |
 | [`plannotator-tools`](#plannotator-tools) | 입력창 위에 Plannotator 실행 버튼 추가 | Claude Code (macOS / WSL2 Ubuntu) |
 
 ## 빠른 시작 (Claude Code)
@@ -53,7 +53,7 @@
 
 ## tdd
 
-사람이 읽고 승인할 수 있는 실행 테스트 명세를 만들고, TDD 단계마다 안전장치를 둡니다. 같은 스킬을 Claude Code와 [Pi Coding Agent](https://pi.dev)에서 함께 씁니다. 스킬 본문은 한국어입니다.
+사람이 읽고 승인할 수 있는 실행 테스트 명세를 만들고, TDD 단계마다 안전장치를 둡니다. 같은 스킬을 Claude Code, [Pi Coding Agent](https://pi.dev), Codex에서 함께 씁니다. 스킬 본문은 한국어입니다.
 
 | 구분 | Claude Code | Pi | 설명 |
 |---|---|---|---|
@@ -142,12 +142,14 @@ claude plugin test plugins/plannotator-tools
 
 ## 다른 에이전트에서 사용
 
-`devtools`는 GitHub Copilot CLI와 Codex에서도 쓸 수 있습니다.
+`devtools`는 GitHub Copilot CLI와 Codex에서도 쓸 수 있습니다. `tdd`도 Codex를 지원합니다.
 
 | 에이전트 | 설치 | 업데이트 |
 |---|---|---|
 | GitHub Copilot CLI | `copilot plugin marketplace add iai6203/devjs-devtools`<br>`copilot plugin install devtools@devjs-devtools` | `copilot plugin marketplace update devjs-devtools` |
-| Codex | `codex plugin marketplace add iai6203/devjs-devtools`<br>`codex plugin add devtools@devjs-devtools` | `codex plugin marketplace upgrade devjs-devtools` |
+| Codex | `codex plugin marketplace add iai6203/devjs-devtools`<br>`codex plugin add devtools@devjs-devtools`<br>`codex plugin add tdd@devjs-devtools` | `codex plugin marketplace upgrade devjs-devtools` |
+
+Codex에서 로컬 변경을 확인하려면 저장소 루트에서 `codex plugin marketplace add .`로 등록한 뒤 필요한 플러그인을 설치합니다. `tdd`의 `references/`는 스킬에서 참조하므로 플러그인 디렉터리와 함께 유지해야 합니다.
 
 ## 철학
 
@@ -171,8 +173,9 @@ plugins/
   plannotator-tools/        # Claude Code Mod (macOS / WSL2 Ubuntu)
     .claude-plugin/plugin.json
     hooks/
-  tdd/                      # Claude Code + Pi 공용 패키지
+  tdd/                      # Claude Code + Pi + Codex 공용 패키지
     .claude-plugin/plugin.json
+    .codex-plugin/plugin.json
     package.json            # Pi manifest (skills만 노출)
     references/tdd-policy.md  # 스킬 공통 정책
     skills/

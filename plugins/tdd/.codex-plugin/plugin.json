@@ -1,0 +1,13 @@
+{
+  "name": "tdd",
+  "version": "0.1.5",
+  "description": "Readable executable test specifications and TDD phase safeguards",
+  "author": {
+    "name": "JaeSeok Kim",
+    "email": "iai6203@gmail.com"
+  },
+  "homepage": "https://github.com/iai6203/devjs-devtools",
+  "repository": "https://github.com/iai6203/devjs-devtools",
+  "keywords": ["tdd", "tests", "readability", "specifications"],
+  "skills": "./skills/"
+}
